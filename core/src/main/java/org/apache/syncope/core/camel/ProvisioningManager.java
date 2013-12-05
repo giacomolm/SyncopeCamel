@@ -16,7 +16,6 @@
 
 package org.apache.syncope.core.camel;
 
-import java.io.InputStream;
 import org.apache.camel.model.ModelCamelContext;
 
 /**
@@ -32,4 +31,10 @@ public interface ProvisioningManager {
     public ModelCamelContext getContext();
     
     public void changeRoute(String routePath);
+    
+    public void sendMessage(String uri, Object obj);
+    
+    public void startConsumer(String uri) throws Exception;
+    
+    public Object getMessage(Class type) throws Exception;
 }

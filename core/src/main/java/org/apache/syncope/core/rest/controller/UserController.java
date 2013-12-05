@@ -26,6 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.camel.Exchange;
 import org.apache.camel.impl.DefaultExchange;
 import org.apache.syncope.common.mod.StatusMod;
@@ -124,7 +126,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         return userDAO.count(EntitlementUtil.getRoleIds(EntitlementUtil.getOwnedEntitlementNames()));
     }
 
-    @PreAuthorize("hasRole('USER_READ')")
+    @PreAuthorize("hasRole('USER_LIST')")
     @Transactional(readOnly = true, rollbackFor = { Throwable.class })
     public int searchCount(final NodeCond searchCondition) throws InvalidSearchConditionException {
         if (!searchCondition.isValid()) {
@@ -134,20 +136,6 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
 
         return searchDAO.count(EntitlementUtil.getRoleIds(EntitlementUtil.getOwnedEntitlementNames()),
                 searchCondition, AttributableUtil.getInstance(AttributableType.USER));
-    }
-
-    @PreAuthorize("hasRole('USER_LIST')")
-    @Transactional(readOnly = true, rollbackFor = { Throwable.class })
-    public List<UserTO> list() {
-        List<SyncopeUser> users = userDAO.findAll(
-                EntitlementUtil.getRoleIds(EntitlementUtil.getOwnedEntitlementNames()));
-
-        List<UserTO> userTOs = new ArrayList<UserTO>(users.size());
-        for (SyncopeUser user : users) {
-            userTOs.add(binder.getUserTO(user));
-        }
-
-        return userTOs;
     }
 
     @PreAuthorize("hasRole('USER_LIST')")
@@ -177,15 +165,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         return binder.getUserTO(userId);
     }
 
-    @PreAuthorize("hasRole('USER_READ')")
-    @Transactional(readOnly = true, rollbackFor = { Throwable.class })
-    public List<UserTO> search(final NodeCond searchCondition)
-            throws InvalidSearchConditionException {
-
-        return search(searchCondition, -1, -1);
-    }
-
-    @PreAuthorize("hasRole('USER_READ')")
+    @PreAuthorize("hasRole('USER_LIST')")
     @Transactional(readOnly = true, rollbackFor = { Throwable.class })
     public List<UserTO> search(final NodeCond searchCondition, final int page, final int size)
             throws InvalidSearchConditionException {
@@ -237,20 +217,20 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         UserTO actual = attrTransformer.transform(userTO);
         LOG.debug("Transformed: {}", actual);
         
-        Exchange exc = new DefaultExchange(provisioningManager.getContext());
-        /*DefaultMessage m = new DefaultMessage();
-        m.setBody("Ciao");
-        exc.setIn(m);
-        ProducerTemplate template = provisioningManager.getContext().createProducerTemplate();
-        template.send("vm:internal",exc);*/
-        
-		
-        //Thread.sleep(5000);
+        WorkflowResult<Map.Entry<Long, Boolean>> created = null;
+        try {
+            provisioningManager.startConsumer("direct:uc-port");
+            provisioningManager.sendMessage("direct:provisioning-port", actual);
+            created = (WorkflowResult<Map.Entry<Long, Boolean>>)provisioningManager.getMessage(WorkflowResult.class);
+        } catch (Exception ex) {
+            LOG.error("Unexpected error in UserworkFlow Creation ", ex);
+        }
         
         /*
          * Actual operations: workflow, propagation, notification
          */
-        WorkflowResult<Map.Entry<Long, Boolean>> created = uwfAdapter.create(actual);
+
+        //WorkflowResult<Map.Entry<Long, Boolean>> created = uwfAdapter.create(actual);
 
         List<PropagationTask> tasks = propagationManager.getUserCreateTaskIds(
                 created, actual.getPassword(), actual.getVirAttrs());

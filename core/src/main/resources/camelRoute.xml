@@ -1,0 +1,11 @@
+
+<routes xmlns="http://camel.apache.org/schema/spring">
+    <!-- here we define the bar route -->
+    <route id="bar">
+      <from uri="direct:provisioning-port"/>
+      <bean ref="uwfAdapter" method="create(${body})"/>
+      <to uri="direct:uc-port"/>
+    </route>
+</routes>
+
+

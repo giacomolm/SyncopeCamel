@@ -26,9 +26,7 @@ under the License.
                            http://www.springframework.org/schema/context
                            http://www.springframework.org/schema/context/spring-context.xsd
                            http://www.springframework.org/schema/task
-                           http://www.springframework.org/schema/task/spring-task.xsd
-  			   http://camel.apache.org/schema/spring
-			   http://camel.apache.org/schema/spring/camel-spring.xsd">
+                           http://www.springframework.org/schema/task/spring-task.xsd">
 
   <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
     <property name="locations">
@@ -124,11 +122,4 @@ under the License.
     <constructor-arg value="5000"/>
   </bean>
 
-  <!-- Move to camelContext.xml? -->
-  <camelContext id="camel-A" xmlns="http://camel.apache.org/schema/spring">
-   <route>
-    <from uri="seda:start"/>
-    <to uri="mock:result"/>
-   </route>
-  </camelContext>
 </beans>
