@@ -26,7 +26,9 @@ under the License.
                            http://www.springframework.org/schema/context
                            http://www.springframework.org/schema/context/spring-context.xsd
                            http://www.springframework.org/schema/task
-                           http://www.springframework.org/schema/task/spring-task.xsd">
+                           http://www.springframework.org/schema/task/spring-task.xsd
+  			   http://camel.apache.org/schema/spring
+			   http://camel.apache.org/schema/spring/camel-spring.xsd">
 
   <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
     <property name="locations">
@@ -58,6 +60,7 @@ under the License.
   <context:component-scan base-package="org.apache.syncope.core.workflow">
     <context:exclude-filter type="regex" expression=".*\.activiti\..*"/>
   </context:component-scan>
+  <context:component-scan base-package="org.apache.syncope.core.camel"/>
 
   <bean id="nonJPAdbInitializer" class="org.springframework.jdbc.datasource.init.DataSourceInitializer">
     <property name="dataSource" ref="dataSource"/>
@@ -88,7 +91,7 @@ under the License.
   
   <bean id="connectorFacadeProxy" class="org.apache.syncope.core.propagation.impl.ConnectorFacadeProxy" scope="prototype"/>
   <bean id="asyncConnFacade" class="org.apache.syncope.core.propagation.impl.AsyncConnectorFacade" scope="singleton"/>
-
+  
   <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
     <property name="defaultEncoding" value="${smtpEncoding}"/>
     <property name="host" value="${smtpHost}"/>
@@ -120,4 +123,12 @@ under the License.
     <constructor-arg value="60"/>
     <constructor-arg value="5000"/>
   </bean>
+
+  <!-- Move to camelContext.xml? -->
+  <camelContext id="camel-A" xmlns="http://camel.apache.org/schema/spring">
+   <route>
+    <from uri="seda:start"/>
+    <to uri="mock:result"/>
+   </route>
+  </camelContext>
 </beans>

@@ -26,6 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.camel.Exchange;
+import org.apache.camel.impl.DefaultExchange;
 import org.apache.syncope.common.mod.StatusMod;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.syncope.common.mod.UserMod;
@@ -39,6 +41,7 @@ import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.common.types.AttributableType;
 import org.apache.syncope.common.types.ClientExceptionType;
 import org.apache.syncope.common.validation.SyncopeClientException;
+import org.apache.syncope.core.camel.ProvisioningManager;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.persistence.beans.role.SyncopeRole;
 import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
@@ -97,6 +100,9 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
 
     @Autowired
     protected AttributableTransformer attrTransformer;
+    
+    @Autowired
+    protected ProvisioningManager provisioningManager;
 
     public boolean isSelfRegistrationAllowed() {
         return Boolean.valueOf(confDAO.find("selfRegistration.allowed", "false").getValue());
@@ -230,7 +236,17 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         // Attributable transformation (if configured)
         UserTO actual = attrTransformer.transform(userTO);
         LOG.debug("Transformed: {}", actual);
-
+        
+        Exchange exc = new DefaultExchange(provisioningManager.getContext());
+        /*DefaultMessage m = new DefaultMessage();
+        m.setBody("Ciao");
+        exc.setIn(m);
+        ProducerTemplate template = provisioningManager.getContext().createProducerTemplate();
+        template.send("vm:internal",exc);*/
+        
+		
+        //Thread.sleep(5000);
+        
         /*
          * Actual operations: workflow, propagation, notification
          */
