@@ -25,16 +25,15 @@ import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.PollingConsumer;
 import org.apache.camel.ProducerTemplate;
+import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.impl.DefaultMessage;
-import org.apache.camel.model.ModelCamelContext;
 import org.apache.camel.model.RoutesDefinition;
-import org.apache.camel.spring.SpringCamelContext;
 import org.apache.syncope.core.util.ApplicationContextProvider;
+import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -45,26 +44,13 @@ public class DefaultProvisioningManager implements ProvisioningManager {
      */
     private static final Logger LOG = LoggerFactory.getLogger(DefaultProvisioningManager.class);
 
-    private SpringCamelContext camelContext;
+    private DefaultCamelContext camelContext;
     private RoutesDefinition routes;
     private PollingConsumer pollingConsumer;
     List<String> knownUri;
 
     public DefaultProvisioningManager() throws Exception {
-        
-        ApplicationContext context = ApplicationContextProvider.getApplicationContext();
-        camelContext = new SpringCamelContext(context);
         knownUri = new ArrayList<String>();
-
-        try {
-            InputStream is = getClass().getResourceAsStream("/camelRoute.xml");
-            routes = camelContext.loadRoutesDefinition(is);
-            camelContext.addRouteDefinitions(routes.getRoutes());
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            LOG.error("Unexpected error", e);
-        }
-        camelContext.start();
     }
 
     @Override
@@ -78,14 +64,14 @@ public class DefaultProvisioningManager implements ProvisioningManager {
     }
 
     @Override
-    public ModelCamelContext getContext() {
-        return camelContext;
+    public DefaultCamelContext getContext() {
+        ApplicationContext context = ApplicationContextProvider.getApplicationContext();
+        return context.getBean("camel-context", DefaultCamelContext.class);
     }
 
     @Override
     public void changeRoute(String routePath) {
         try {
-            //InputStream is = getClass().getResourceAsStream("/camelRoute.xml");
             camelContext.removeRouteDefinitions(routes.getRoutes());
             InputStream is = getClass().getResourceAsStream(routePath);
             routes = getContext().loadRoutesDefinition(is);
@@ -108,18 +94,31 @@ public class DefaultProvisioningManager implements ProvisioningManager {
 
     @Override
     public void startConsumer(String uri) throws Exception {
-        if(!knownUri.contains(uri)){
+        if (!knownUri.contains(uri)) {
             knownUri.add(uri);
             Endpoint endpoint = getContext().getEndpoint(uri);
             pollingConsumer = endpoint.createPollingConsumer();
-            pollingConsumer.start();
+            
+            pollingConsumer.start();                        
         }
     }
 
     @Override
-    public Object getMessage(Class type) throws Exception {
-        Exchange o = pollingConsumer.receive();              
-        return o.getIn().getBody();
+    public void stopConsumer() throws Exception {
+        pollingConsumer.stop();
+    }
+
+    @Override
+    public WorkflowResult createUser() throws RuntimeException{
+        Exchange o = pollingConsumer.receive();
+        //LOG.info("EXCHANGE BODY 1 {}", o.getProperty(Exchange.EXCEPTION_CAUGHT));
+        
+        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!=null)
+        {
+                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+
+        return (WorkflowResult) o.getIn().getBody();   
     }
 
 }

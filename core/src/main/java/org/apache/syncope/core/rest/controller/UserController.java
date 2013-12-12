@@ -26,10 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.apache.camel.Exchange;
-import org.apache.camel.impl.DefaultExchange;
 import org.apache.syncope.common.mod.StatusMod;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.syncope.common.mod.UserMod;
@@ -217,20 +213,18 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         UserTO actual = attrTransformer.transform(userTO);
         LOG.debug("Transformed: {}", actual);
         
-        WorkflowResult<Map.Entry<Long, Boolean>> created = null;
         try {
             provisioningManager.startConsumer("direct:uc-port");
-            provisioningManager.sendMessage("direct:provisioning-port", actual);
-            created = (WorkflowResult<Map.Entry<Long, Boolean>>)provisioningManager.getMessage(WorkflowResult.class);
+            provisioningManager.sendMessage("direct:provisioning-port", actual);            
+            //provisioningManager.stopConsumer();
         } catch (Exception ex) {
-            LOG.error("Unexpected error in UserworkFlow Creation ", ex);
+            LOG.error("Unexpected error in Userworkflow Creation ", ex);
         }
-        
-        /*
-         * Actual operations: workflow, propagation, notification
-         */
 
-        //WorkflowResult<Map.Entry<Long, Boolean>> created = uwfAdapter.create(actual);
+        WorkflowResult<Map.Entry<Long, Boolean>> created = provisioningManager.createUser();
+        /*
+         * Actual operations: propagation, notification
+         */       
 
         List<PropagationTask> tasks = propagationManager.getUserCreateTaskIds(
                 created, actual.getPassword(), actual.getVirAttrs());
