@@ -87,6 +87,7 @@ under the License.
   <bean id="propagationReporter" class="org.apache.syncope.core.propagation.impl.DefaultPropagationReporter" scope="prototype"/>
 
   <bean id="notificationManager" class="org.apache.syncope.core.notification.NotificationManager"/>
+  <bean id="provisioningManager" class="org.apache.syncope.core.camel.CamelProvisioningManager" />
 
   <bean id="auditManager" class="org.apache.syncope.core.audit.AuditManager"/>
   
