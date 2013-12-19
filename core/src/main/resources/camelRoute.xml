@@ -19,18 +19,34 @@ under the License.
 -->
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="
-       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-       http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
-    ">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://camel.apache.org/schema/spring
+                           http://camel.apache.org/schema/spring/camel-spring.xsd">
  
-    
+    <!--
+        The default routes define each task involved in user creation:
+        main operations consist in user workflow creation and its propagation.         
+    -->
     <routeContext id="defaultRoutes" xmlns="http://camel.apache.org/schema/spring">    
-        <route id="dafult-1">
+        
+        <!--
+            This is the entry point of the route and is involved in accepting
+            the UserTO. When it arrives, the user workflow is created. If the
+            creation is successfull, the result is sent to propagation, otherwise
+            if an exception was raised, the exception has to be returned to the
+            caller. The property actual allows to store the received UserTO in
+            order to use it later.
+        -->
+        
+        <route id="workflow">
           <from uri="direct:provisioning-port"/>
+          <setProperty propertyName="actual">
+            <simple>${body}</simple>
+          </setProperty>
           <doTry>
             <bean ref="uwfAdapter" method="create(${body})"/>
-            <to uri="direct:uc-port"/>
+            <to uri="direct:propagation-port"/>
             <doCatch>        
                 <exception>java.lang.RuntimeException</exception>
                 <handled>
@@ -39,7 +55,19 @@ under the License.
                 <to uri="direct:uc-port"/>
             </doCatch>
           </doTry>
+        </route> 
+        
+        <!--
+            The propagation route deals with propagation of created user. In this
+            case we used a custom processor to perform this task: it means that
+            a custom java class contains the propagation strategy.
+        -->
+        <route id="propagation">
+            <from uri="direct:propagation-port"/>
+                <process ref="defaultUserPropagation" />
+            <to uri="direct:uc-port"/>
         </route>
+        
     </routeContext>
- 
+    <bean id="defaultUserPropagation" class="org.apache.syncope.core.camel.processors.DefaultUserPropagation"/>    
 </beans>

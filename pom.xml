@@ -312,7 +312,7 @@ under the License.
 
     <cxf.version>3.0.0-SNAPSHOT</cxf.version>	
     <camel.version>2.12.1</camel.version>
-    <spring.version>3.2.5.RELEASE</spring.version>
+    <spring.version>3.2.6.RELEASE</spring.version>
     <spring-security.version>3.1.4.RELEASE</spring-security.version>
     <jackson.version>2.2.3</jackson.version>
     <xstream.version>1.4.5</xstream.version>
@@ -506,9 +506,9 @@ under the License.
       </dependency>
       
       <dependency>
-        <groupId>javax.validation</groupId>
-        <artifactId>validation-api</artifactId>
-        <version>1.0.0.GA</version>
+        <groupId>org.apache.geronimo.specs</groupId>
+        <artifactId>geronimo-validation_1.0_spec</artifactId>
+        <version>1.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.bval</groupId>
@@ -882,10 +882,6 @@ under the License.
 
   <repositories>
 
-    <repository>
-      <id>activiti</id>
-      <url>https://artifacts.alfresco.com/nexus/content/groups/public/</url>
-    </repository>
     <repository>
       <id>sonatype</id>
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>

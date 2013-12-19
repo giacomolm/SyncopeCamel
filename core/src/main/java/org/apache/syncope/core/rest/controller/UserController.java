@@ -29,17 +29,18 @@ import java.util.Set;
 import org.apache.syncope.common.mod.StatusMod;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.syncope.common.mod.UserMod;
-import org.apache.syncope.common.search.NodeCond;
-import org.apache.syncope.common.services.InvalidSearchConditionException;
-import org.apache.syncope.common.to.BulkAction;
-import org.apache.syncope.common.to.BulkActionRes;
-import org.apache.syncope.common.to.BulkActionRes.Status;
+import org.apache.syncope.core.persistence.dao.search.SearchCond;
+import org.apache.syncope.common.reqres.BulkAction;
+import org.apache.syncope.common.reqres.BulkActionResult;
+import org.apache.syncope.common.reqres.BulkActionResult.Status;
 import org.apache.syncope.common.to.MembershipTO;
 import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.common.types.AttributableType;
 import org.apache.syncope.common.types.ClientExceptionType;
-import org.apache.syncope.common.validation.SyncopeClientException;
 import org.apache.syncope.core.camel.ProvisioningManager;
+import org.apache.syncope.common.SyncopeClientException;
+import org.apache.syncope.common.to.PropagationStatus;
+import org.apache.syncope.core.camel.processors.DefaultUserPropagation;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.persistence.beans.role.SyncopeRole;
 import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
@@ -47,6 +48,7 @@ import org.apache.syncope.core.persistence.dao.AttributableSearchDAO;
 import org.apache.syncope.core.persistence.dao.ConfDAO;
 import org.apache.syncope.core.persistence.dao.RoleDAO;
 import org.apache.syncope.core.persistence.dao.UserDAO;
+import org.apache.syncope.core.persistence.dao.search.OrderByClause;
 import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.propagation.PropagationReporter;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
@@ -101,6 +103,9 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     
     @Autowired
     protected ProvisioningManager provisioningManager;
+    
+    @Autowired
+    protected DefaultUserPropagation userPropagation;
 
     public boolean isSelfRegistrationAllowed() {
         return Boolean.valueOf(confDAO.find("selfRegistration.allowed", "false").getValue());
@@ -124,12 +129,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
 
     @PreAuthorize("hasRole('USER_LIST')")
     @Transactional(readOnly = true, rollbackFor = { Throwable.class })
-    public int searchCount(final NodeCond searchCondition) throws InvalidSearchConditionException {
-        if (!searchCondition.isValid()) {
-            LOG.error("Invalid search condition: {}", searchCondition);
-            throw new InvalidSearchConditionException();
-        }
-
+    public int searchCount(final SearchCond searchCondition) {
         return searchDAO.count(EntitlementUtil.getRoleIds(EntitlementUtil.getOwnedEntitlementNames()),
                 searchCondition, AttributableUtil.getInstance(AttributableType.USER));
     }
@@ -156,23 +156,19 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     }
 
     @PreAuthorize("hasRole('USER_READ')")
-    @Transactional(readOnly = true, rollbackFor = { Throwable.class })
+    @Transactional(readOnly = true)
     public UserTO read(final Long userId) {
         return binder.getUserTO(userId);
     }
 
     @PreAuthorize("hasRole('USER_LIST')")
-    @Transactional(readOnly = true, rollbackFor = { Throwable.class })
-    public List<UserTO> search(final NodeCond searchCondition, final int page, final int size)
-            throws InvalidSearchConditionException {
+    @Transactional(readOnly = true)
+    public List<UserTO> search(final SearchCond searchCondition, final int page, final int size,
+            final List<OrderByClause> orderBy) {
 
-        if (!searchCondition.isValid()) {
-            LOG.error("Invalid search condition: {}", searchCondition);
-            throw new InvalidSearchConditionException();
-        }
-
-        final List<SyncopeUser> matchingUsers = searchDAO.search(EntitlementUtil.getRoleIds(EntitlementUtil.
-                getOwnedEntitlementNames()), searchCondition, page, size,
+        final List<SyncopeUser> matchingUsers = searchDAO.search(
+                EntitlementUtil.getRoleIds(EntitlementUtil.getOwnedEntitlementNames()),
+                searchCondition, page, size, orderBy,
                 AttributableUtil.getInstance(AttributableType.USER));
 
         final List<UserTO> result = new ArrayList<UserTO>(matchingUsers.size());
@@ -212,33 +208,12 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         // Attributable transformation (if configured)
         UserTO actual = attrTransformer.transform(userTO);
         LOG.debug("Transformed: {}", actual);
-        
-        try {
-            provisioningManager.startConsumer("direct:uc-port");
-            provisioningManager.sendMessage("direct:provisioning-port", actual);            
-            //provisioningManager.stopConsumer();
-        } catch (Exception ex) {
-            LOG.error("Unexpected error in Userworkflow Creation ", ex);
-        }
 
-        WorkflowResult<Map.Entry<Long, Boolean>> created = provisioningManager.createUser();
-        /*
-         * Actual operations: propagation, notification
-         */       
+        Map.Entry<Long, List<PropagationStatus>>
+                created = provisioningManager.createUser(actual);
 
-        List<PropagationTask> tasks = propagationManager.getUserCreateTaskIds(
-                created, actual.getPassword(), actual.getVirAttrs());
-        PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
-                getBean(PropagationReporter.class);
-        try {
-            taskExecutor.execute(tasks, propagationReporter);
-        } catch (PropagationException e) {
-            LOG.error("Error propagation primary resource", e);
-            propagationReporter.onPrimaryResourceFailure(tasks);
-        }
-
-        final UserTO savedTO = binder.getUserTO(created.getResult().getKey());
-        savedTO.getPropagationStatusTOs().addAll(propagationReporter.getStatuses());
+        final UserTO savedTO = binder.getUserTO(created.getKey());
+        savedTO.getPropagationStatusTOs().addAll(created.getValue());
         return savedTO;
     }
 
@@ -264,15 +239,23 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
          */
         WorkflowResult<Map.Entry<UserMod, Boolean>> updated = uwfAdapter.update(actual);
 
-        List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(updated);
-
         PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
                 getBean(PropagationReporter.class);
-        try {
-            taskExecutor.execute(tasks, propagationReporter);
-        } catch (PropagationException e) {
-            LOG.error("Error propagation primary resource", e);
-            propagationReporter.onPrimaryResourceFailure(tasks);
+
+        List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(updated);
+        if (tasks.isEmpty()) {
+            // SYNCOPE-459: take care of user virtual attributes ...
+            binder.forceVirtualAttributes(
+                    updated.getResult().getKey().getId(),
+                    actual.getVirAttrsToRemove(),
+                    actual.getVirAttrsToUpdate());
+        } else {
+            try {
+                taskExecutor.execute(tasks, propagationReporter);
+            } catch (PropagationException e) {
+                LOG.error("Error propagation primary resource", e);
+                propagationReporter.onPrimaryResourceFailure(tasks);
+            }
         }
 
         final UserTO updatedTO = binder.getUserTO(updated.getResult().getKey().getId());
@@ -391,8 +374,8 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
             + "(hasRole('USER_UPDATE') and "
             + "(#bulkAction.operation == #bulkAction.operation.REACTIVATE or "
             + "#bulkAction.operation == #bulkAction.operation.SUSPEND))")
-    public BulkActionRes bulk(final BulkAction bulkAction) {
-        BulkActionRes res = new BulkActionRes();
+    public BulkActionResult bulk(final BulkAction bulkAction) {
+        BulkActionResult res = new BulkActionResult();
 
         switch (bulkAction.getOperation()) {
             case DELETE:

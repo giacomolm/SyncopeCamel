@@ -21,6 +21,7 @@ package org.apache.syncope.core.camel;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.PollingConsumer;
@@ -29,8 +30,9 @@ import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.impl.DefaultMessage;
 import org.apache.camel.model.RoutesDefinition;
+import org.apache.syncope.common.to.PropagationStatus;
+import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.core.util.ApplicationContextProvider;
-import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -82,8 +84,7 @@ public class DefaultProvisioningManager implements ProvisioningManager {
         }
     }
 
-    @Override
-    public void sendMessage(String uri, Object obj) {
+    private void sendMessage(String uri, Object obj) {
         Exchange exc = new DefaultExchange(getContext());
         DefaultMessage m = new DefaultMessage();
         m.setBody(obj);
@@ -93,32 +94,31 @@ public class DefaultProvisioningManager implements ProvisioningManager {
     }
 
     @Override
-    public void startConsumer(String uri) throws Exception {
+    public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException{
+            
+        String uri = "direct:uc-port";
+        
         if (!knownUri.contains(uri)) {
             knownUri.add(uri);
             Endpoint endpoint = getContext().getEndpoint(uri);
-            pollingConsumer = endpoint.createPollingConsumer();
-            
-            pollingConsumer.start();                        
+            try {
+                pollingConsumer = endpoint.createPollingConsumer();
+                pollingConsumer.start();
+            } catch (Exception ex) {
+                 LOG.error("Unexpected error in Consumer creation ", ex);
+            }
         }
-    }
-
-    @Override
-    public void stopConsumer() throws Exception {
-        pollingConsumer.stop();
-    }
-
-    @Override
-    public WorkflowResult createUser() throws RuntimeException{
-        Exchange o = pollingConsumer.receive();
-        //LOG.info("EXCHANGE BODY 1 {}", o.getProperty(Exchange.EXCEPTION_CAUGHT));
         
-        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!=null)
+        sendMessage("direct:provisioning-port", actual);      
+        
+        Exchange o = pollingConsumer.receive();
+        
+        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null)
         {
                 throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
 
-        return (WorkflowResult) o.getIn().getBody();   
+        return o.getIn().getBody(Map.Entry.class);   
     }
 
 }

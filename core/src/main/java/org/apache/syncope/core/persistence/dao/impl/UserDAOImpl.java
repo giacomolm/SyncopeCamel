@@ -25,7 +25,6 @@ import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 
-import org.apache.syncope.common.services.InvalidSearchConditionException;
 import org.apache.syncope.common.types.AttributableType;
 import org.apache.syncope.core.persistence.beans.AbstractAttrValue;
 import org.apache.syncope.core.persistence.beans.AbstractAttributable;
@@ -124,9 +123,7 @@ public class UserDAOImpl extends AbstractAttributableDAOImpl implements UserDAO 
     }
 
     @Override
-    public List<SyncopeUser> findByDerAttrValue(final String schemaName, final String value)
-            throws InvalidSearchConditionException {
-
+    public List<SyncopeUser> findByDerAttrValue(final String schemaName, final String value) {
         return findByDerAttrValue(schemaName, value, AttributableUtil.getInstance(AttributableType.USER));
     }
 
@@ -183,24 +180,10 @@ public class UserDAOImpl extends AbstractAttributableDAOImpl implements UserDAO 
             query.setMaxResults(itemsPerPage);
         }
 
-        List<Number> userIds = new ArrayList<Number>();
-        List<Object> resultList = query.getResultList();
+        List<SyncopeUser> result = new ArrayList<SyncopeUser>();
 
-        // fix for HHH-5902 - bug hibernate
-        if (resultList != null) {
-            for (Object userId : resultList) {
-                if (userId instanceof Object[]) {
-                    userIds.add((Number) ((Object[]) userId)[0]);
-                } else {
-                    userIds.add((Number) userId);
-                }
-            }
-        }
-
-        List<SyncopeUser> result = new ArrayList<SyncopeUser>(userIds.size());
-
-        for (Number userId : userIds) {
-            SyncopeUser user = findInternal(userId.longValue());
+        for (Object userId : query.getResultList()) {
+            SyncopeUser user = findInternal(((Number) userId).longValue());
             if (user == null) {
                 LOG.error("Could not find user with id {}, even though returned by the native query", userId);
             } else {

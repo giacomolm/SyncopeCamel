@@ -19,9 +19,11 @@
 
 package org.apache.syncope.core.camel;
 
+import java.util.List;
+import java.util.Map;
 import org.apache.camel.impl.DefaultCamelContext;
-import org.apache.syncope.core.workflow.WorkflowResult;
-
+import org.apache.syncope.common.to.PropagationStatus;
+import org.apache.syncope.common.to.UserTO;
 
 public interface ProvisioningManager {
     
@@ -33,11 +35,5 @@ public interface ProvisioningManager {
     
     public void changeRoute(String routePath);
     
-    public void sendMessage(String uri, Object obj);
-    
-    public void startConsumer(String uri) throws Exception;
-     
-    public void stopConsumer() throws Exception;
-    
-    public WorkflowResult createUser() throws RuntimeException;
+    public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException;
 }

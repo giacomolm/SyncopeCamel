@@ -18,11 +18,14 @@
  */
 package org.apache.syncope.client;
 
+import org.apache.syncope.common.search.UserFiqlSearchConditionBuilder;
 import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.syncope.client.rest.RestClientFactoryBean;
+import org.apache.syncope.common.search.OrderByClauseBuilder;
+import org.apache.syncope.common.search.RoleFiqlSearchConditionBuilder;
 import org.apache.syncope.common.services.UserSelfService;
 import org.apache.syncope.common.services.WorkflowService;
 import org.apache.syncope.common.types.AttributableType;
@@ -52,6 +55,33 @@ public class SyncopeClient {
         this.restClientFactory = restClientFactory;
         this.username = username;
         this.password = password;
+    }
+
+    /**
+     * Returns a new instance of <tt>UserFiqlSearchConditionBuilder</tt>, for assisted building of FIQL queries.
+     *
+     * @return default instance of <tt>UserFiqlSearchConditionBuilder</tt>
+     */
+    public static UserFiqlSearchConditionBuilder getUserSearchConditionBuilder() {
+        return new UserFiqlSearchConditionBuilder();
+    }
+
+    /**
+     * Returns a new instance of <tt>RoleFiqlSearchConditionBuilder</tt>, for assisted building of FIQL queries.
+     *
+     * @return default instance of <tt>RoleFiqlSearchConditionBuilder</tt>
+     */
+    public static RoleFiqlSearchConditionBuilder getRoleSearchConditionBuilder() {
+        return new RoleFiqlSearchConditionBuilder();
+    }
+
+    /**
+     * Returns a new instance of <tt>OrderByClauseBuilder</tt>, for assisted building of <tt>orderby</tt> clauses.
+     *
+     * @return default instance of <tt>OrderByClauseBuilder</tt>
+     */
+    public static OrderByClauseBuilder getOrderByClauseBuilder() {
+        return new OrderByClauseBuilder();
     }
 
     /**
