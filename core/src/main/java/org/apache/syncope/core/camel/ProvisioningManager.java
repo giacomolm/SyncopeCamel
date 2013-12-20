@@ -39,4 +39,7 @@ public interface ProvisioningManager {
     public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException;
     
     public Map.Entry<Long, List<PropagationStatus>> updateUser(UserMod actual) throws RuntimeException;
+    
+    public List<PropagationStatus> deleteUser(long userId) throws RuntimeException;
+    
 }

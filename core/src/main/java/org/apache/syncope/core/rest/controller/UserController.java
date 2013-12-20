@@ -306,6 +306,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
 
     @PreAuthorize("hasRole('USER_DELETE')")
     public UserTO delete(final Long userId) {
+        
         List<SyncopeRole> ownedRoles = roleDAO.findOwnedByUser(userId);
         if (!ownedRoles.isEmpty()) {
             List<String> owned = new ArrayList<String>(ownedRoles.size());
@@ -318,23 +319,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
             throw sce;
         }
 
-        // Note here that we can only notify about "delete", not any other
-        // task defined in workflow process definition: this because this
-        // information could only be available after uwfAdapter.delete(), which
-        // will also effectively remove user from db, thus making virtually
-        // impossible by NotificationManager to fetch required user information
-        List<PropagationTask> tasks = propagationManager.getUserDeleteTaskIds(userId);
-
-        PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
-                getBean(PropagationReporter.class);
-        try {
-            taskExecutor.execute(tasks, propagationReporter);
-        } catch (PropagationException e) {
-            LOG.error("Error propagation primary resource", e);
-            propagationReporter.onPrimaryResourceFailure(tasks);
-        }
-
-        uwfAdapter.delete(userId);
+        List<PropagationStatus> statuses = provisioningManager.deleteUser(userId);
 
         final UserTO deletedTO;
         SyncopeUser deleted = userDAO.find(userId);
@@ -344,7 +329,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         } else {
             deletedTO = binder.getUserTO(userId);
         }
-        deletedTO.getPropagationStatusTOs().addAll(propagationReporter.getStatuses());
+        deletedTO.getPropagationStatusTOs().addAll(statuses);
 
         return deletedTO;
     }

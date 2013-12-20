@@ -56,8 +56,6 @@ public class DefaultUserUpdatePropagation implements Processor{
             WorkflowResult<Map.Entry<UserMod, Boolean>> updated = (WorkflowResult) exchange.getIn().getBody();            
             UserMod actual = exchange.getProperty("actual", UserMod.class);
             
-            LOG.info("User Updated {} ", updated);
-            
             PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
                     getBean(PropagationReporter.class);
 

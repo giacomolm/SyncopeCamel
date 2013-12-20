@@ -154,5 +154,22 @@ public class DefaultProvisioningManager implements ProvisioningManager {
 
         return o.getIn().getBody(Map.Entry.class);   
      }
+
+    @Override
+    public List<PropagationStatus> deleteUser(long userId) throws RuntimeException {
+        
+        String uri = "direct:deletePort";
+        PollingConsumer pollingConsumer= getConsumer(uri);
+        
+        sendMessage("direct:deleteUser", userId);
+        
+        Exchange o = pollingConsumer.receive();
+        
+        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
+                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+        
+        return o.getIn().getBody(List.class);   
+    }
     
 }

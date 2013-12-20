@@ -19,57 +19,51 @@
 
 package org.apache.syncope.core.camel.processors;
 
-import java.util.AbstractMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
-import org.apache.syncope.common.to.PropagationStatus;
-import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.propagation.PropagationReporter;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
 import org.apache.syncope.core.propagation.impl.PropagationManager;
 import org.apache.syncope.core.util.ApplicationContextProvider;
-import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DefaultUserCreatePropagation implements Processor{
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultUserCreatePropagation.class);
+public class DefaultUserDeletePropagation implements Processor{
     
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultUserDeletePropagation.class);
     @Autowired
     protected PropagationManager propagationManager;
     @Autowired
     protected PropagationTaskExecutor taskExecutor;
     
     @Override
-    public void process(Exchange exchange){
-      
-        if((exchange.getIn().getBody() instanceof WorkflowResult)){
-            
-            WorkflowResult<Map.Entry<Long, Boolean>> created = (WorkflowResult) exchange.getIn().getBody();            
-            UserTO actual = exchange.getProperty("actual", UserTO.class);
-            
-            
-            List<PropagationTask> tasks = propagationManager.getUserCreateTaskIds(
-                    created, actual.getPassword(), actual.getVirAttrs());
-            PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
-                    getBean(PropagationReporter.class);
-            try {
-                taskExecutor.execute(tasks, propagationReporter);
-            } catch (PropagationException e) {
-                LOG.error("Error propagation primary resource {}", e);
-                propagationReporter.onPrimaryResourceFailure(tasks);
-            }
-            
-            Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(created.getResult().getKey(), propagationReporter.getStatuses());         
-            exchange.getOut().setBody(result);
-        }               
+    public void process(Exchange exchange) throws Exception {
+        
+        Long userId = (Long) exchange.getIn().getBody();       
+        LOG.info("UserId {} ", userId);
+        
+        // Note here that we can only notify about "delete", not any other
+        // task defined in workflow process definition: this because this
+        // information could only be available after uwfAdapter.delete(), which
+        // will also effectively remove user from db, thus making virtually
+        // impossible by NotificationManager to fetch required user information
+        List<PropagationTask> tasks = propagationManager.getUserDeleteTaskIds(userId);
+
+        PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
+                getBean(PropagationReporter.class);
+        try {
+            taskExecutor.execute(tasks, propagationReporter);
+        } catch (PropagationException e) {
+            LOG.error("Error propagation primary resource", e);
+            propagationReporter.onPrimaryResourceFailure(tasks);
+        }
+        
+        exchange.setProperty("statuses", propagationReporter.getStatuses());
     }
-    
     
 }

@@ -31,6 +31,7 @@ under the License.
     <routeContext id="defaultRoutes" xmlns="http://camel.apache.org/schema/spring">    
         
         <!--
+            CREATE USER
             This is the entry point of the route and is involved in accepting
             the UserTO. When it arrives, the user workflow is created. If the
             creation is successfull, the result is sent to propagation, otherwise
@@ -67,7 +68,10 @@ under the License.
                 <process ref="defaultUserCreatePropagation" />
             <to uri="direct:create-port"/>
         </route>
-        
+       
+        <!--
+            UPDATE USER
+        -->
         <route id="updateUser">
             <from uri="direct:updateUser"/>
             <setProperty propertyName="actual">
@@ -91,9 +95,31 @@ under the License.
                 <process ref="defaultUserUpdatePropagation" />
             <to uri="direct:updatePort"/>
         </route>
-
+        
+        <!--
+            DELETE USER
+        -->
+        <route id="deleteUser">
+            <from uri="direct:deleteUser"/>
+            <doTry>
+              <process ref="defaultUserDeletePropagation" />
+              <bean ref="uwfAdapter" method="delete(${body})"/>
+              <setBody>
+                  <simple>${property.statuses}</simple>
+              </setBody>
+              <to uri="direct:deletePort"/>
+              <doCatch>        
+                  <exception>java.lang.RuntimeException</exception>
+                  <handled>
+                      <constant>false</constant>
+                  </handled>
+                  <to uri="direct:deletePort"/>
+              </doCatch>
+            </doTry>
+        </route>
         
     </routeContext>
     <bean id="defaultUserCreatePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserCreatePropagation"/>
-    <bean id="defaultUserUpdatePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserUpdatePropagation"/>    
+    <bean id="defaultUserUpdatePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserUpdatePropagation"/>
+    <bean id="defaultUserDeletePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserDeletePropagation"/>    
 </beans>
