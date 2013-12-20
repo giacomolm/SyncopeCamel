@@ -40,7 +40,7 @@ import org.apache.syncope.common.types.ClientExceptionType;
 import org.apache.syncope.core.camel.ProvisioningManager;
 import org.apache.syncope.common.SyncopeClientException;
 import org.apache.syncope.common.to.PropagationStatus;
-import org.apache.syncope.core.camel.processors.DefaultUserPropagation;
+import org.apache.syncope.core.camel.processors.DefaultUserCreatePropagation;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.persistence.beans.role.SyncopeRole;
 import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
@@ -105,7 +105,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     protected ProvisioningManager provisioningManager;
     
     @Autowired
-    protected DefaultUserPropagation userPropagation;
+    protected DefaultUserCreatePropagation userPropagation;
 
     public boolean isSelfRegistrationAllowed() {
         return Boolean.valueOf(confDAO.find("selfRegistration.allowed", "false").getValue());
@@ -234,32 +234,11 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         // AttributableMod transformation (if configured)
         UserMod actual = attrTransformer.transform(userMod);
         LOG.debug("Transformed: {}", actual);
-        /*
-         * Actual operations: workflow, propagation, notification
-         */
-        WorkflowResult<Map.Entry<UserMod, Boolean>> updated = uwfAdapter.update(actual);
 
-        PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
-                getBean(PropagationReporter.class);
+        Map.Entry<Long, List<PropagationStatus>> updated = provisioningManager.updateUser(actual);
 
-        List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(updated);
-        if (tasks.isEmpty()) {
-            // SYNCOPE-459: take care of user virtual attributes ...
-            binder.forceVirtualAttributes(
-                    updated.getResult().getKey().getId(),
-                    actual.getVirAttrsToRemove(),
-                    actual.getVirAttrsToUpdate());
-        } else {
-            try {
-                taskExecutor.execute(tasks, propagationReporter);
-            } catch (PropagationException e) {
-                LOG.error("Error propagation primary resource", e);
-                propagationReporter.onPrimaryResourceFailure(tasks);
-            }
-        }
-
-        final UserTO updatedTO = binder.getUserTO(updated.getResult().getKey().getId());
-        updatedTO.getPropagationStatusTOs().addAll(propagationReporter.getStatuses());
+        final UserTO updatedTO = binder.getUserTO(updated.getKey());
+        updatedTO.getPropagationStatusTOs().addAll(updated.getValue());
         return updatedTO;
     }
 

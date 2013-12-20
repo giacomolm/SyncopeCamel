@@ -39,20 +39,20 @@ under the License.
             order to use it later.
         -->
         
-        <route id="workflow">
-          <from uri="direct:provisioning-port"/>
+        <route id="createUser">
+          <from uri="direct:createUser"/>
           <setProperty propertyName="actual">
             <simple>${body}</simple>
           </setProperty>
           <doTry>
             <bean ref="uwfAdapter" method="create(${body})"/>
-            <to uri="direct:propagation-port"/>
+            <to uri="direct:propagateCreated"/>
             <doCatch>        
                 <exception>java.lang.RuntimeException</exception>
                 <handled>
                     <constant>false</constant>
                 </handled>
-                <to uri="direct:uc-port"/>
+                <to uri="direct:create-port"/>
             </doCatch>
           </doTry>
         </route> 
@@ -62,12 +62,38 @@ under the License.
             case we used a custom processor to perform this task: it means that
             a custom java class contains the propagation strategy.
         -->
-        <route id="propagation">
-            <from uri="direct:propagation-port"/>
-                <process ref="defaultUserPropagation" />
-            <to uri="direct:uc-port"/>
+        <route id="propagateCreated">
+            <from uri="direct:propagateCreated"/>
+                <process ref="defaultUserCreatePropagation" />
+            <to uri="direct:create-port"/>
         </route>
         
+        <route id="updateUser">
+            <from uri="direct:updateUser"/>
+            <setProperty propertyName="actual">
+                <simple>${body}</simple>
+            </setProperty>
+            <doTry>
+              <bean ref="uwfAdapter" method="update(${body})"/>
+              <to uri="direct:propagateUpdated"/>
+              <doCatch>        
+                  <exception>java.lang.RuntimeException</exception>
+                  <handled>
+                      <constant>false</constant>
+                  </handled>
+                  <to uri="direct:updatePort"/>
+              </doCatch>
+            </doTry>
+        </route>
+        
+        <route id="propagateUpdated">
+            <from uri="direct:propagateUpdated"/>
+                <process ref="defaultUserUpdatePropagation" />
+            <to uri="direct:updatePort"/>
+        </route>
+
+        
     </routeContext>
-    <bean id="defaultUserPropagation" class="org.apache.syncope.core.camel.processors.DefaultUserPropagation"/>    
+    <bean id="defaultUserCreatePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserCreatePropagation"/>
+    <bean id="defaultUserUpdatePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserUpdatePropagation"/>    
 </beans>

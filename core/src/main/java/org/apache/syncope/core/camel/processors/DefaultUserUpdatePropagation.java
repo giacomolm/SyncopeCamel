@@ -25,52 +25,59 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
+import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
-import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.propagation.PropagationReporter;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
 import org.apache.syncope.core.propagation.impl.PropagationManager;
+import org.apache.syncope.core.rest.data.UserDataBinder;
 import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DefaultUserPropagation implements Processor{
+public class DefaultUserUpdatePropagation implements Processor{
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultUserPropagation.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultUserUpdatePropagation.class);
     
     @Autowired
     protected PropagationManager propagationManager;
     @Autowired
     protected PropagationTaskExecutor taskExecutor;
+    @Autowired
+    protected UserDataBinder binder;
     
     @Override
     public void process(Exchange exchange){
-      
-        if((exchange.getIn().getBody() instanceof WorkflowResult)){
+                 
+            WorkflowResult<Map.Entry<UserMod, Boolean>> updated = (WorkflowResult) exchange.getIn().getBody();            
+            UserMod actual = exchange.getProperty("actual", UserMod.class);
             
-            WorkflowResult<Map.Entry<Long, Boolean>> created = (WorkflowResult) exchange.getIn().getBody();            
-            UserTO actual = exchange.getProperty("actual", UserTO.class);
+            LOG.info("User Updated {} ", updated);
             
-            
-            List<PropagationTask> tasks = propagationManager.getUserCreateTaskIds(
-                    created, actual.getPassword(), actual.getVirAttrs());
             PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
                     getBean(PropagationReporter.class);
-            try {
-                taskExecutor.execute(tasks, propagationReporter);
-            } catch (PropagationException e) {
-                LOG.error("Error propagation primary resource {}", e);
-                propagationReporter.onPrimaryResourceFailure(tasks);
+
+            List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(updated);
+            if (tasks.isEmpty()) {
+                // SYNCOPE-459: take care of user virtual attributes ...
+                binder.forceVirtualAttributes(
+                        updated.getResult().getKey().getId(),
+                        actual.getVirAttrsToRemove(),
+                        actual.getVirAttrsToUpdate());
+            } else {
+                try {
+                    taskExecutor.execute(tasks, propagationReporter);
+                } catch (PropagationException e) {
+                    LOG.error("Error propagation primary resource", e);
+                    propagationReporter.onPrimaryResourceFailure(tasks);
+                }
             }
             
-            Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(created.getResult().getKey(), propagationReporter.getStatuses());         
-            exchange.getOut().setBody(result);
-        }               
+            Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(updated.getResult().getKey().getId(), propagationReporter.getStatuses());
+            exchange.getOut().setBody(result);            
     }
-    
-    
 }

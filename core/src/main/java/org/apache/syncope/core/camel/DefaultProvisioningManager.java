@@ -20,6 +20,7 @@ package org.apache.syncope.core.camel;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.camel.Endpoint;
@@ -30,6 +31,7 @@ import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.impl.DefaultMessage;
 import org.apache.camel.model.RoutesDefinition;
+import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.core.util.ApplicationContextProvider;
@@ -41,18 +43,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class DefaultProvisioningManager implements ProvisioningManager {
 
-    /**
-     * Logger.
-     */
     private static final Logger LOG = LoggerFactory.getLogger(DefaultProvisioningManager.class);
 
     private DefaultCamelContext camelContext;
     private RoutesDefinition routes;
-    private PollingConsumer pollingConsumer;
+    
+    private Map<String,PollingConsumer> consumerMap;
     List<String> knownUri;
 
     public DefaultProvisioningManager() throws Exception {
         knownUri = new ArrayList<String>();
+        consumerMap = new HashMap();
     }
 
     @Override
@@ -92,24 +93,34 @@ public class DefaultProvisioningManager implements ProvisioningManager {
         ProducerTemplate template = getContext().createProducerTemplate();
         template.send(uri, exc);
     }
-
-    @Override
-    public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException{
-            
-        String uri = "direct:uc-port";
-        
+    
+    private PollingConsumer getConsumer(String uri){        
+                
         if (!knownUri.contains(uri)) {
             knownUri.add(uri);
             Endpoint endpoint = getContext().getEndpoint(uri);
+            PollingConsumer pollingConsumer = null;
             try {
                 pollingConsumer = endpoint.createPollingConsumer();
+                consumerMap.put(uri, pollingConsumer);
                 pollingConsumer.start();
             } catch (Exception ex) {
                  LOG.error("Unexpected error in Consumer creation ", ex);
             }
+            return pollingConsumer;
         }
+        else{
+            return consumerMap.get(uri);
+        }
+    }
+
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException{
+            
+        String uri = "direct:create-port";
+        PollingConsumer pollingConsumer = getConsumer(uri);
         
-        sendMessage("direct:provisioning-port", actual);      
+        sendMessage("direct:createUser", actual);      
         
         Exchange o = pollingConsumer.receive();
         
@@ -121,4 +132,27 @@ public class DefaultProvisioningManager implements ProvisioningManager {
         return o.getIn().getBody(Map.Entry.class);   
     }
 
+     /**
+      *
+      * @param actual
+      * @return 
+      * @throws RuntimeException if problems arise on workflow update
+      */
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> updateUser(UserMod actual) throws RuntimeException{
+
+        String uri = "direct:updatePort";
+        PollingConsumer pollingConsumer= getConsumer(uri);
+        
+        sendMessage("direct:updateUser", actual);      
+
+        Exchange o = pollingConsumer.receive();
+
+        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
+                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+
+        return o.getIn().getBody(Map.Entry.class);   
+     }
+    
 }
