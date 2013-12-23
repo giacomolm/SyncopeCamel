@@ -42,4 +42,6 @@ public interface ProvisioningManager {
     
     public List<PropagationStatus> deleteUser(long userId) throws RuntimeException;
     
+    public UserMod unlinkUser(UserMod userMod) throws RuntimeException;
+    
 }

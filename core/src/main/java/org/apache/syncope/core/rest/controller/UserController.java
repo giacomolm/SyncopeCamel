@@ -396,9 +396,9 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
 
         userMod.getResourcesToRemove().addAll(resources);
 
-        WorkflowResult<Map.Entry<UserMod, Boolean>> updated = uwfAdapter.update(userMod);
+        UserMod updated = provisioningManager.unlinkUser(userMod);
 
-        return binder.getUserTO(updated.getResult().getKey().getId());
+        return binder.getUserTO(updated.getId());
     }
 
     @PreAuthorize("hasRole('USER_UPDATE')")

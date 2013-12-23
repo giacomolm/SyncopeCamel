@@ -22,7 +22,6 @@ package org.apache.syncope.core.camel.processors;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.syncope.common.mod.UserMod;

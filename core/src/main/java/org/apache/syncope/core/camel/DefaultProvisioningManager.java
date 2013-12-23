@@ -48,8 +48,8 @@ public class DefaultProvisioningManager implements ProvisioningManager {
     private DefaultCamelContext camelContext;
     private RoutesDefinition routes;
     
-    private Map<String,PollingConsumer> consumerMap;
-    List<String> knownUri;
+    protected Map<String,PollingConsumer> consumerMap;
+    protected List<String> knownUri;
 
     public DefaultProvisioningManager() throws Exception {
         knownUri = new ArrayList<String>();
@@ -85,7 +85,7 @@ public class DefaultProvisioningManager implements ProvisioningManager {
         }
     }
 
-    private void sendMessage(String uri, Object obj) {
+    protected void sendMessage(String uri, Object obj) {
         Exchange exc = new DefaultExchange(getContext());
         DefaultMessage m = new DefaultMessage();
         m.setBody(obj);
@@ -94,7 +94,7 @@ public class DefaultProvisioningManager implements ProvisioningManager {
         template.send(uri, exc);
     }
     
-    private PollingConsumer getConsumer(String uri){        
+    protected PollingConsumer getConsumer(String uri){        
                 
         if (!knownUri.contains(uri)) {
             knownUri.add(uri);
@@ -117,7 +117,7 @@ public class DefaultProvisioningManager implements ProvisioningManager {
     @Override
     public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException{
             
-        String uri = "direct:create-port";
+        String uri = "direct:createPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
         
         sendMessage("direct:createUser", actual);      
@@ -172,4 +172,21 @@ public class DefaultProvisioningManager implements ProvisioningManager {
         return o.getIn().getBody(List.class);   
     }
     
+    @Override
+    public UserMod unlinkUser(UserMod userMod) throws RuntimeException {
+        
+        String uri = "direct:unlinkPort";
+        PollingConsumer pollingConsumer= getConsumer(uri);
+        
+        sendMessage("direct:unlinkUser", userMod);
+        
+        Exchange o = pollingConsumer.receive();
+        
+        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
+                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+        
+        return o.getIn().getBody(UserMod.class);   
+    }
+
 }
