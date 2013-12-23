@@ -21,6 +21,7 @@ package org.apache.syncope.core.camel;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.apache.camel.Endpoint;
@@ -35,6 +36,7 @@ import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.core.util.ApplicationContextProvider;
+import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -93,6 +95,25 @@ public class DefaultProvisioningManager implements ProvisioningManager {
         ProducerTemplate template = getContext().createProducerTemplate();
         template.send(uri, exc);
     }
+    
+    protected void sendMessage(String uri, Object obj, Map<String, Object> properties) {
+        Exchange exc = new DefaultExchange(getContext());
+        
+        Iterator<Map.Entry<String, Object>> it = properties.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Object> property = it.next();      
+            exc.setProperty(property.getKey(), property.getValue());
+            LOG.info("Added property {}", property.getKey());
+            LOG.info("With value {}", property.getValue());                    
+        }
+        
+        DefaultMessage m = new DefaultMessage();
+        m.setBody(obj);
+        exc.setIn(m);
+        ProducerTemplate template = getContext().createProducerTemplate();
+        template.send(uri, exc);
+    }
+    
     
     protected PollingConsumer getConsumer(String uri){        
                 
@@ -189,4 +210,57 @@ public class DefaultProvisioningManager implements ProvisioningManager {
         return o.getIn().getBody(UserMod.class);   
     }
 
+    @Override
+    public WorkflowResult<Long> activateUser(Long userId, String token) throws RuntimeException{
+        
+        String uri = "direct:activatePort";
+        PollingConsumer pollingConsumer= getConsumer(uri);
+        
+        Map props = new HashMap<String, Object>();
+        props.put("token", token);
+        
+        sendMessage("direct:activateUser", userId, props);
+        
+        Exchange o = pollingConsumer.receive();
+        
+        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
+                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+        
+        return o.getIn().getBody(WorkflowResult.class);
+    }
+    
+    @Override
+    public WorkflowResult<Long> reactivateUser(Long userId) throws RuntimeException{
+        
+        String uri = "direct:reactivatePort";
+        PollingConsumer pollingConsumer= getConsumer(uri);
+        
+        sendMessage("direct:reactivateUser", userId);
+        
+        Exchange o = pollingConsumer.receive();
+        
+        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
+                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+        
+        return o.getIn().getBody(WorkflowResult.class);
+    }
+    
+    @Override
+    public WorkflowResult<Long> suspendUser(Long userId) throws RuntimeException{
+        
+        String uri = "direct:suspendPort";
+        PollingConsumer pollingConsumer= getConsumer(uri);
+        
+        sendMessage("direct:suspendUser", userId);
+        Exchange o = pollingConsumer.receive();
+        
+        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
+                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+        
+        return o.getIn().getBody(WorkflowResult.class);
+    }
 }
+

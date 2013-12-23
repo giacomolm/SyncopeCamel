@@ -247,16 +247,16 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
 
         switch (statusMod.getType()) {
             case SUSPEND:
-                updated = uwfAdapter.suspend(user.getId());
+                updated = provisioningManager.suspendUser(user.getId());
                 break;
 
             case REACTIVATE:
-                updated = uwfAdapter.reactivate(user.getId());
+                updated = provisioningManager.reactivateUser(user.getId());
                 break;
 
             case ACTIVATE:
-            default:
-                updated = uwfAdapter.activate(user.getId(), statusMod.getToken());
+            default: 
+                updated = provisioningManager.activateUser(user.getId(), statusMod.getToken());
                 break;
 
         }

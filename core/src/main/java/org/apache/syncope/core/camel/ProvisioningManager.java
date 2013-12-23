@@ -25,6 +25,7 @@ import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
+import org.apache.syncope.core.workflow.WorkflowResult;
 
 public interface ProvisioningManager {
     
@@ -43,5 +44,11 @@ public interface ProvisioningManager {
     public List<PropagationStatus> deleteUser(long userId) throws RuntimeException;
     
     public UserMod unlinkUser(UserMod userMod) throws RuntimeException;
+    
+    public WorkflowResult<Long> activateUser(Long userId, String token) throws RuntimeException;
+    
+    public WorkflowResult<Long> reactivateUser(Long userId) throws RuntimeException;
+    
+    public WorkflowResult<Long> suspendUser(Long userId) throws RuntimeException;
     
 }

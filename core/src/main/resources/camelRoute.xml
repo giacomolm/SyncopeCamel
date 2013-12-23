@@ -138,6 +138,57 @@ under the License.
                 </doCatch>
             </doTry>            
         </route>
+        <!-- 
+            ACTIVATE USER
+        -->
+        <route id="activateUser">
+            <from uri="direct:activateUser"/>
+            <doTry>
+                <bean ref="uwfAdapter" method="activate(${body}, ${property.token})"/>
+                <to uri="direct:activatePort"/>
+                <doCatch>        
+                   <exception>java.lang.RuntimeException</exception>
+                   <handled>
+                       <constant>false</constant>
+                   </handled>
+                   <to uri="direct:activatePort"/>
+                </doCatch>
+            </doTry>    
+        </route>
+        <!-- 
+            REACTIVATE USER
+        -->
+        <route id="reactivateUser">
+            <from uri="direct:reactivateUser"/>
+            <doTry>
+                <bean ref="uwfAdapter" method="reactivate(${body})"/>
+                <to uri="direct:reactivatePort"/>
+                <doCatch>        
+                   <exception>java.lang.RuntimeException</exception>
+                   <handled>
+                       <constant>false</constant>
+                   </handled>
+                   <to uri="direct:reactivatePort"/>
+                </doCatch>
+            </doTry>    
+        </route>
+        <!-- 
+            SUSPEND USER
+        -->
+        <route id="suspendUser">
+            <from uri="direct:suspendUser"/>
+            <doTry>
+                <bean ref="uwfAdapter" method="suspend(${body})"/>
+                <to uri="direct:suspendPort"/>
+                <doCatch>        
+                   <exception>java.lang.RuntimeException</exception>
+                   <handled>
+                       <constant>false</constant>
+                   </handled>
+                   <to uri="direct:suspendPort"/>
+                </doCatch>
+            </doTry>  
+        </route>
         
     </routeContext>
     <bean id="defaultUserCreatePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserCreatePropagation"/>
