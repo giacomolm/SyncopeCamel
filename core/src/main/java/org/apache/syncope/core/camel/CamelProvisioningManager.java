@@ -41,9 +41,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DefaultProvisioningManager implements ProvisioningManager {
+public class CamelProvisioningManager implements ProvisioningManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultProvisioningManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CamelProvisioningManager.class);
 
     private DefaultCamelContext camelContext;
     private RoutesDefinition routes;
@@ -51,7 +51,7 @@ public class DefaultProvisioningManager implements ProvisioningManager {
     protected Map<String,PollingConsumer> consumerMap;
     protected List<String> knownUri;
 
-    public DefaultProvisioningManager() throws Exception {
+    public CamelProvisioningManager() throws Exception {
         knownUri = new ArrayList<String>();
         consumerMap = new HashMap();
     }
