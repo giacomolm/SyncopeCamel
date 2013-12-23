@@ -56,23 +56,19 @@ public class DefaultProvisioningManager implements ProvisioningManager {
         consumerMap = new HashMap();
     }
 
-    @Override
     public void startContext() throws Exception {
         camelContext.start();
     }
 
-    @Override
     public void stopContext() throws Exception {
         camelContext.stop();
     }
 
-    @Override
     public DefaultCamelContext getContext() {
         ApplicationContext context = ApplicationContextProvider.getApplicationContext();
         return context.getBean("camel-context", DefaultCamelContext.class);
     }
 
-    @Override
     public void changeRoute(String routePath) {
         try {
             camelContext.removeRouteDefinitions(routes.getRoutes());

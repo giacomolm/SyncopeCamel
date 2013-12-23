@@ -21,21 +21,12 @@ package org.apache.syncope.core.camel;
 
 import java.util.List;
 import java.util.Map;
-import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
 
 public interface ProvisioningManager {
-    
-    public void startContext() throws Exception;
-    
-    public void stopContext() throws Exception;
-    
-    public DefaultCamelContext getContext();
-    
-    public void changeRoute(String routePath);
-    
+
     public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException;
     
     public Map.Entry<Long, List<PropagationStatus>> updateUser(UserMod actual) throws RuntimeException;
