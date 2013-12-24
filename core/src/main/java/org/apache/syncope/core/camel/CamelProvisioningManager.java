@@ -40,9 +40,8 @@ import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Component;
 
-@Component
+
 public class CamelProvisioningManager implements ProvisioningManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(CamelProvisioningManager.class);

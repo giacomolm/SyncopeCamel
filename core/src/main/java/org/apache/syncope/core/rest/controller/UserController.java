@@ -40,7 +40,6 @@ import org.apache.syncope.common.types.ClientExceptionType;
 import org.apache.syncope.core.camel.ProvisioningManager;
 import org.apache.syncope.common.SyncopeClientException;
 import org.apache.syncope.common.to.PropagationStatus;
-import org.apache.syncope.core.camel.processors.DefaultUserCreatePropagation;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.persistence.beans.role.SyncopeRole;
 import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
@@ -103,9 +102,6 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     
     @Autowired
     protected ProvisioningManager provisioningManager;
-    
-    @Autowired
-    protected DefaultUserCreatePropagation userPropagation;
 
     public boolean isSelfRegistrationAllowed() {
         return Boolean.valueOf(confDAO.find("selfRegistration.allowed", "false").getValue());
