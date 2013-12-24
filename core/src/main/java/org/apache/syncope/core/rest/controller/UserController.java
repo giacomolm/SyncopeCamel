@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Resource;
 import org.apache.syncope.common.mod.StatusMod;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.syncope.common.mod.UserMod;
@@ -40,6 +41,7 @@ import org.apache.syncope.common.types.ClientExceptionType;
 import org.apache.syncope.core.camel.ProvisioningManager;
 import org.apache.syncope.common.SyncopeClientException;
 import org.apache.syncope.common.to.PropagationStatus;
+import org.apache.syncope.core.camel.UserProvisioningManager;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.persistence.beans.role.SyncopeRole;
 import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
@@ -89,9 +91,6 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     protected UserDataBinder binder;
 
     @Autowired
-    protected UserWorkflowAdapter uwfAdapter;
-
-    @Autowired
     protected PropagationManager propagationManager;
 
     @Autowired
@@ -100,8 +99,8 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     @Autowired
     protected AttributableTransformer attrTransformer;
     
-    @Autowired
-    protected ProvisioningManager provisioningManager;
+    @Resource(name = "defaultUserProvisioningManager")
+    protected UserProvisioningManager provisioningManager;
 
     public boolean isSelfRegistrationAllowed() {
         return Boolean.valueOf(confDAO.find("selfRegistration.allowed", "false").getValue());
@@ -392,9 +391,9 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
 
         userMod.getResourcesToRemove().addAll(resources);
 
-        UserMod updated = provisioningManager.unlink(userMod);
+        Long updatedId = provisioningManager.unlink(userMod);
 
-        return binder.getUserTO(updated.getId());
+        return binder.getUserTO(updatedId);
     }
 
     @PreAuthorize("hasRole('USER_UPDATE')")

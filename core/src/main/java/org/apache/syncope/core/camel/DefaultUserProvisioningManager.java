@@ -35,12 +35,10 @@ import org.apache.syncope.core.workflow.user.UserWorkflowAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
-@Component
-public class DefaultProvisioningManager implements ProvisioningManager<UserTO, UserMod> {
+public class DefaultUserProvisioningManager implements UserProvisioningManager{
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultProvisioningManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultUserProvisioningManager.class);
 
     @Autowired
     protected UserWorkflowAdapter uwfAdapter;
@@ -124,9 +122,9 @@ public class DefaultProvisioningManager implements ProvisioningManager<UserTO, U
     }
 
     @Override
-    public UserMod unlink(final UserMod userMod) {
+    public Long unlink(UserMod userMod) {
         WorkflowResult<Map.Entry<UserMod, Boolean>> updated = uwfAdapter.update(userMod);
-        return updated.getResult().getKey();
+        return updated.getResult().getKey().getId();
     }
 
     @Override

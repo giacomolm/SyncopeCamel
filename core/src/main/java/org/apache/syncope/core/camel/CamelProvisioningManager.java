@@ -41,7 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-public class CamelProvisioningManager implements ProvisioningManager<UserTO, UserMod> {
+public class CamelProvisioningManager implements UserProvisioningManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(CamelProvisioningManager.class);
 
@@ -184,7 +184,7 @@ public class CamelProvisioningManager implements ProvisioningManager<UserTO, Use
     }
 
     @Override
-    public UserMod unlink(final UserMod userMod) {
+    public Long unlink(final UserMod userMod) {
         String uri = "direct:unlinkPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
 
@@ -196,7 +196,8 @@ public class CamelProvisioningManager implements ProvisioningManager<UserTO, Use
             throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
 
-        return o.getIn().getBody(UserMod.class);
+        o.getIn().setBody((o.getIn().getBody(UserMod.class).getId()));
+        return o.getIn().getBody(Long.class);
     }
 
     @Override

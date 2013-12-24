@@ -21,10 +21,8 @@ package org.apache.syncope.core.camel;
 import java.util.List;
 import java.util.Map;
 import org.apache.syncope.common.mod.AbstractAttributableMod;
-import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.AbstractAttributableTO;
 import org.apache.syncope.common.to.PropagationStatus;
-import org.apache.syncope.core.workflow.WorkflowResult;
 
 public interface ProvisioningManager<T extends AbstractAttributableTO, M extends AbstractAttributableMod> {
 
@@ -34,12 +32,6 @@ public interface ProvisioningManager<T extends AbstractAttributableTO, M extends
 
     public List<PropagationStatus> delete(Long subjectId);
 
-    public UserMod unlink(M subjectMod);
-
-    public WorkflowResult<Long> activate(Long subjectId, String token);
-
-    public WorkflowResult<Long> reactivate(Long subjectId);
-
-    public WorkflowResult<Long> suspend(Long subjectId);
+    public Long unlink(M subjectMod);
 
 }
