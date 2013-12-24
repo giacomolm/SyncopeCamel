@@ -16,30 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.syncope.core.camel;
 
 import java.util.List;
 import java.util.Map;
+import org.apache.syncope.common.mod.AbstractAttributableMod;
 import org.apache.syncope.common.mod.UserMod;
+import org.apache.syncope.common.to.AbstractAttributableTO;
 import org.apache.syncope.common.to.PropagationStatus;
-import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.core.workflow.WorkflowResult;
 
-public interface ProvisioningManager {
+public interface ProvisioningManager<T extends AbstractAttributableTO, M extends AbstractAttributableMod> {
 
-    public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException;
-    
-    public Map.Entry<Long, List<PropagationStatus>> updateUser(UserMod actual) throws RuntimeException;
-    
-    public List<PropagationStatus> deleteUser(long userId) throws RuntimeException;
-    
-    public UserMod unlinkUser(UserMod userMod) throws RuntimeException;
-    
-    public WorkflowResult<Long> activateUser(Long userId, String token) throws RuntimeException;
-    
-    public WorkflowResult<Long> reactivateUser(Long userId) throws RuntimeException;
-    
-    public WorkflowResult<Long> suspendUser(Long userId) throws RuntimeException;
-    
+    public Map.Entry<Long, List<PropagationStatus>> create(T subject);
+
+    public Map.Entry<Long, List<PropagationStatus>> update(M subjectMod);
+
+    public List<PropagationStatus> delete(Long subjectId);
+
+    public UserMod unlink(M subjectMod);
+
+    public WorkflowResult<Long> activate(Long subjectId, String token);
+
+    public WorkflowResult<Long> reactivate(Long subjectId);
+
+    public WorkflowResult<Long> suspend(Long subjectId);
+
 }

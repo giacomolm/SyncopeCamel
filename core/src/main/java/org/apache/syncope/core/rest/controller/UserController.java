@@ -206,7 +206,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         LOG.debug("Transformed: {}", actual);
 
         Map.Entry<Long, List<PropagationStatus>>
-                created = provisioningManager.createUser(actual);
+                created = provisioningManager.create(actual);
 
         final UserTO savedTO = binder.getUserTO(created.getKey());
         savedTO.getPropagationStatusTOs().addAll(created.getValue());
@@ -231,7 +231,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         UserMod actual = attrTransformer.transform(userMod);
         LOG.debug("Transformed: {}", actual);
 
-        Map.Entry<Long, List<PropagationStatus>> updated = provisioningManager.updateUser(actual);
+        Map.Entry<Long, List<PropagationStatus>> updated = provisioningManager.update(actual);
 
         final UserTO updatedTO = binder.getUserTO(updated.getKey());
         updatedTO.getPropagationStatusTOs().addAll(updated.getValue());
@@ -243,16 +243,16 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
 
         switch (statusMod.getType()) {
             case SUSPEND:
-                updated = provisioningManager.suspendUser(user.getId());
+                updated = provisioningManager.suspend(user.getId());
                 break;
 
             case REACTIVATE:
-                updated = provisioningManager.reactivateUser(user.getId());
+                updated = provisioningManager.reactivate(user.getId());
                 break;
 
             case ACTIVATE:
             default: 
-                updated = provisioningManager.activateUser(user.getId(), statusMod.getToken());
+                updated = provisioningManager.activate(user.getId(), statusMod.getToken());
                 break;
 
         }
@@ -315,7 +315,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
             throw sce;
         }
 
-        List<PropagationStatus> statuses = provisioningManager.deleteUser(userId);
+        List<PropagationStatus> statuses = provisioningManager.delete(userId);
 
         final UserTO deletedTO;
         SyncopeUser deleted = userDAO.find(userId);
@@ -392,7 +392,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
 
         userMod.getResourcesToRemove().addAll(resources);
 
-        UserMod updated = provisioningManager.unlinkUser(userMod);
+        UserMod updated = provisioningManager.unlink(userMod);
 
         return binder.getUserTO(updated.getId());
     }

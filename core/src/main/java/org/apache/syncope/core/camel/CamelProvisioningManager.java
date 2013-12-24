@@ -41,15 +41,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-
-public class CamelProvisioningManager implements ProvisioningManager {
+public class CamelProvisioningManager implements ProvisioningManager<UserTO, UserMod> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CamelProvisioningManager.class);
 
     private DefaultCamelContext camelContext;
+
     private RoutesDefinition routes;
-    
-    protected Map<String,PollingConsumer> consumerMap;
+
+    protected Map<String, PollingConsumer> consumerMap;
+
     protected List<String> knownUri;
 
     public CamelProvisioningManager() throws Exception {
@@ -90,28 +91,27 @@ public class CamelProvisioningManager implements ProvisioningManager {
         ProducerTemplate template = getContext().createProducerTemplate();
         template.send(uri, exc);
     }
-    
+
     protected void sendMessage(String uri, Object obj, Map<String, Object> properties) {
         Exchange exc = new DefaultExchange(getContext());
-        
+
         Iterator<Map.Entry<String, Object>> it = properties.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<String, Object> property = it.next();      
+            Map.Entry<String, Object> property = it.next();
             exc.setProperty(property.getKey(), property.getValue());
             LOG.info("Added property {}", property.getKey());
-            LOG.info("With value {}", property.getValue());                    
+            LOG.info("With value {}", property.getValue());
         }
-        
+
         DefaultMessage m = new DefaultMessage();
         m.setBody(obj);
         exc.setIn(m);
         ProducerTemplate template = getContext().createProducerTemplate();
         template.send(uri, exc);
     }
-    
-    
-    protected PollingConsumer getConsumer(String uri){        
-                
+
+    protected PollingConsumer getConsumer(String uri) {
+
         if (!knownUri.contains(uri)) {
             knownUri.add(uri);
             Endpoint endpoint = getContext().getEndpoint(uri);
@@ -121,141 +121,132 @@ public class CamelProvisioningManager implements ProvisioningManager {
                 consumerMap.put(uri, pollingConsumer);
                 pollingConsumer.start();
             } catch (Exception ex) {
-                 LOG.error("Unexpected error in Consumer creation ", ex);
+                LOG.error("Unexpected error in Consumer creation ", ex);
             }
             return pollingConsumer;
-        }
-        else{
+        } else {
             return consumerMap.get(uri);
         }
     }
 
     @Override
-    public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException{
-            
+    public Map.Entry<Long, List<PropagationStatus>> create(final UserTO userTO) {
         String uri = "direct:createPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
-        
-        sendMessage("direct:createUser", actual);      
-        
+
+        sendMessage("direct:createUser", userTO);
+
         Exchange o = pollingConsumer.receive();
-        
-        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null)
-        {
-                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
 
-        return o.getIn().getBody(Map.Entry.class);   
+        return o.getIn().getBody(Map.Entry.class);
     }
 
-     /**
-      *
-      * @param actual
-      * @return 
-      * @throws RuntimeException if problems arise on workflow update
-      */
+    /**
+     *
+     * @param userMod
+     * @return
+     * @throws RuntimeException if problems arise on workflow update
+     */
     @Override
-    public Map.Entry<Long, List<PropagationStatus>> updateUser(UserMod actual) throws RuntimeException{
-
+    public Map.Entry<Long, List<PropagationStatus>> update(final UserMod userMod) {
         String uri = "direct:updatePort";
-        PollingConsumer pollingConsumer= getConsumer(uri);
-        
-        sendMessage("direct:updateUser", actual);      
+        PollingConsumer pollingConsumer = getConsumer(uri);
+
+        sendMessage("direct:updateUser", userMod);
 
         Exchange o = pollingConsumer.receive();
 
-        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
-                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
 
-        return o.getIn().getBody(Map.Entry.class);   
-     }
+        return o.getIn().getBody(Map.Entry.class);
+    }
 
     @Override
-    public List<PropagationStatus> deleteUser(long userId) throws RuntimeException {
-        
+    public List<PropagationStatus> delete(final Long userId) {
         String uri = "direct:deletePort";
-        PollingConsumer pollingConsumer= getConsumer(uri);
-        
+        PollingConsumer pollingConsumer = getConsumer(uri);
+
         sendMessage("direct:deleteUser", userId);
-        
+
         Exchange o = pollingConsumer.receive();
-        
-        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
-                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
-        
-        return o.getIn().getBody(List.class);   
-    }
-    
-    @Override
-    public UserMod unlinkUser(UserMod userMod) throws RuntimeException {
-        
-        String uri = "direct:unlinkPort";
-        PollingConsumer pollingConsumer= getConsumer(uri);
-        
-        sendMessage("direct:unlinkUser", userMod);
-        
-        Exchange o = pollingConsumer.receive();
-        
-        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
-                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
-        }
-        
-        return o.getIn().getBody(UserMod.class);   
+
+        return o.getIn().getBody(List.class);
     }
 
     @Override
-    public WorkflowResult<Long> activateUser(Long userId, String token) throws RuntimeException{
-        
+    public UserMod unlink(final UserMod userMod) {
+        String uri = "direct:unlinkPort";
+        PollingConsumer pollingConsumer = getConsumer(uri);
+
+        sendMessage("direct:unlinkUser", userMod);
+
+        Exchange o = pollingConsumer.receive();
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+
+        return o.getIn().getBody(UserMod.class);
+    }
+
+    @Override
+    public WorkflowResult<Long> activate(final Long userId, final String token) {
         String uri = "direct:activatePort";
-        PollingConsumer pollingConsumer= getConsumer(uri);
-        
+        PollingConsumer pollingConsumer = getConsumer(uri);
+
         Map props = new HashMap<String, Object>();
         props.put("token", token);
-        
+
         sendMessage("direct:activateUser", userId, props);
-        
+
         Exchange o = pollingConsumer.receive();
-        
-        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
-                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
-        
+
         return o.getIn().getBody(WorkflowResult.class);
     }
-    
+
     @Override
-    public WorkflowResult<Long> reactivateUser(Long userId) throws RuntimeException{
-        
+    public WorkflowResult<Long> reactivate(final Long userId) {
         String uri = "direct:reactivatePort";
-        PollingConsumer pollingConsumer= getConsumer(uri);
-        
+        PollingConsumer pollingConsumer = getConsumer(uri);
+
         sendMessage("direct:reactivateUser", userId);
-        
+
         Exchange o = pollingConsumer.receive();
-        
-        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
-                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
-        
+
         return o.getIn().getBody(WorkflowResult.class);
     }
-    
+
     @Override
-    public WorkflowResult<Long> suspendUser(Long userId) throws RuntimeException{
-        
+    public WorkflowResult<Long> suspend(final Long userId) {
+
         String uri = "direct:suspendPort";
-        PollingConsumer pollingConsumer= getConsumer(uri);
-        
+        PollingConsumer pollingConsumer = getConsumer(uri);
+
         sendMessage("direct:suspendUser", userId);
         Exchange o = pollingConsumer.receive();
-        
-        if(o.getProperty(Exchange.EXCEPTION_CAUGHT)!= null){
-                throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
-        
+
         return o.getIn().getBody(WorkflowResult.class);
     }
 }
-

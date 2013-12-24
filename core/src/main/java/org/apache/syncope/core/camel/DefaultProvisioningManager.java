@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.syncope.core.camel;
 
 import java.util.AbstractMap;
@@ -39,32 +38,30 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DefaultProvisioningManager implements ProvisioningManager{
-    
+public class DefaultProvisioningManager implements ProvisioningManager<UserTO, UserMod> {
+
     private static final Logger LOG = LoggerFactory.getLogger(DefaultProvisioningManager.class);
 
     @Autowired
     protected UserWorkflowAdapter uwfAdapter;
-    
+
     @Autowired
     protected PropagationManager propagationManager;
 
     @Autowired
     protected PropagationTaskExecutor taskExecutor;
-    
+
     @Override
-    public Map.Entry<Long, List<PropagationStatus>> createUser(UserTO actual) throws RuntimeException {
-        
+    public Map.Entry<Long, List<PropagationStatus>> create(final UserTO userTO) {
         WorkflowResult<Map.Entry<Long, Boolean>> created;
-        try{
-            created = uwfAdapter.create(actual);
-        }
-        catch(RuntimeException e){
+        try {
+            created = uwfAdapter.create(userTO);
+        } catch (RuntimeException e) {
             throw e;
         }
-        
+
         List<PropagationTask> tasks = propagationManager.getUserCreateTaskIds(
-                created, actual.getPassword(), actual.getVirAttrs());
+                created, userTO.getPassword(), userTO.getVirAttrs());
         PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
                 getBean(PropagationReporter.class);
         try {
@@ -73,19 +70,18 @@ public class DefaultProvisioningManager implements ProvisioningManager{
             LOG.error("Error propagation primary resource", e);
             propagationReporter.onPrimaryResourceFailure(tasks);
         }
-        
-        Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(created.getResult().getKey(), propagationReporter.getStatuses());
+
+        Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(
+                created.getResult().getKey(), propagationReporter.getStatuses());
         return result;
     }
 
     @Override
-    public Map.Entry<Long, List<PropagationStatus>> updateUser(UserMod actual) throws RuntimeException {
-        
+    public Map.Entry<Long, List<PropagationStatus>> update(final UserMod userMod) {
         WorkflowResult<Map.Entry<UserMod, Boolean>> updated;
-        try{
-            updated = uwfAdapter.update(actual);
-        }
-        catch(RuntimeException e){
+        try {
+            updated = uwfAdapter.update(userMod);
+        } catch (RuntimeException e) {
             throw e;
         }
 
@@ -99,14 +95,14 @@ public class DefaultProvisioningManager implements ProvisioningManager{
             LOG.error("Error propagation primary resource", e);
             propagationReporter.onPrimaryResourceFailure(tasks);
         }
-        
-        Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(updated.getResult().getKey().getId(), propagationReporter.getStatuses());
+
+        Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(
+                updated.getResult().getKey().getId(), propagationReporter.getStatuses());
         return result;
     }
 
     @Override
-    public List<PropagationStatus> deleteUser(long userId) throws RuntimeException {
-        
+    public List<PropagationStatus> delete(final Long userId) {
         List<PropagationTask> tasks = propagationManager.getUserDeleteTaskIds(userId);
 
         PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
@@ -117,67 +113,35 @@ public class DefaultProvisioningManager implements ProvisioningManager{
             LOG.error("Error propagation primary resource", e);
             propagationReporter.onPrimaryResourceFailure(tasks);
         }
-        
-        try{
+
+        try {
             uwfAdapter.delete(userId);
-        }
-        catch(RuntimeException e){
+        } catch (RuntimeException e) {
             throw e;
         }
-        
+
         return propagationReporter.getStatuses();
     }
 
     @Override
-    public UserMod unlinkUser(UserMod userMod) throws RuntimeException {
-       
-        WorkflowResult<Map.Entry<UserMod, Boolean>> updated;
-        try{
-             updated = uwfAdapter.update(userMod);
-        }
-        catch(RuntimeException e){
-            throw e;
-        }
-        
+    public UserMod unlink(final UserMod userMod) {
+        WorkflowResult<Map.Entry<UserMod, Boolean>> updated = uwfAdapter.update(userMod);
         return updated.getResult().getKey();
     }
 
     @Override
-    public WorkflowResult<Long> activateUser(Long userId, String token) throws RuntimeException {
-         WorkflowResult<Long> updated;
-         try{
-             updated = uwfAdapter.activate(userId, token);
-         }
-         catch(RuntimeException e){
-             throw e;
-         }
-         
-         return updated;
+    public WorkflowResult<Long> activate(final Long userId, final String token) {
+        return uwfAdapter.activate(userId, token);
     }
 
     @Override
-    public WorkflowResult<Long> reactivateUser(Long userId) throws RuntimeException {
-        WorkflowResult<Long> updated;
-         try{
-             updated = uwfAdapter.reactivate(userId);
-         }
-         catch(RuntimeException e){
-             throw e;
-         }
-         return updated;
+    public WorkflowResult<Long> reactivate(final Long userId) {
+        return uwfAdapter.reactivate(userId);
     }
 
     @Override
-    public WorkflowResult<Long> suspendUser(Long userId) throws RuntimeException {
-        WorkflowResult<Long> updated;
-         try{
-             updated = uwfAdapter.suspend(userId);
-         }
-         catch(RuntimeException e){
-             throw e;
-         }
-         
-         return updated;
+    public WorkflowResult<Long> suspend(final Long userId) {
+        return uwfAdapter.suspend(userId);
     }
-    
+
 }
