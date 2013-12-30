@@ -138,6 +138,29 @@ under the License.
                 </doCatch>
             </doTry>            
         </route>
+        
+        <!--
+            LINK USER
+        -->
+        
+        <route id="linkUser">
+            <from uri="direct:linkUser"/>
+            <doTry>
+                <bean ref="uwfAdapter" method="update(${body})"/>
+                <setBody>
+                   <simple>${body.getResult.getKey}</simple>
+                </setBody>
+                <to uri="direct:linkPort"/>
+                <doCatch>        
+                    <exception>java.lang.RuntimeException</exception>
+                    <handled>
+                        <constant>false</constant>
+                    </handled>
+                    <to uri="direct:linkPort"/>
+                </doCatch>
+            </doTry>            
+        </route>
+        
         <!-- 
             ACTIVATE USER
         -->
@@ -190,8 +213,18 @@ under the License.
             </doTry>  
         </route>
         
+        <!--
+            DEPROVISION USER
+        -->
+        <route id="deprovisionUser">
+            <from uri="direct:deprovisionUser"/>            
+              <process ref="defaultUserDeprovisionPropagation" />
+              <to uri="direct:deprovisionPort"/>              
+        </route>
+        
     </routeContext>
     <bean id="defaultUserCreatePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserCreatePropagation"/>
     <bean id="defaultUserUpdatePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserUpdatePropagation"/>
     <bean id="defaultUserDeletePropagation" class="org.apache.syncope.core.camel.processors.DefaultUserDeletePropagation"/>    
+    <bean id="defaultUserDeprovisionPropagation" class="org.apache.syncope.core.camel.processors.DefaultUserDeprovisionPropagation"/>    
 </beans>

@@ -42,9 +42,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-public class CamelProvisioningManager implements UserProvisioningManager {
+public class CamelUserProvisioningManager implements UserProvisioningManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CamelProvisioningManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CamelUserProvisioningManager.class);
 
     private DefaultCamelContext camelContext;
 
@@ -54,7 +54,7 @@ public class CamelProvisioningManager implements UserProvisioningManager {
 
     protected List<String> knownUri;
 
-    public CamelProvisioningManager() throws Exception {
+    public CamelUserProvisioningManager() throws Exception {
         knownUri = new ArrayList<String>();
         consumerMap = new HashMap();
     }
@@ -100,8 +100,7 @@ public class CamelProvisioningManager implements UserProvisioningManager {
         while (it.hasNext()) {
             Map.Entry<String, Object> property = it.next();
             exc.setProperty(property.getKey(), property.getValue());
-            LOG.info("Added property {}", property.getKey());
-            LOG.info("With value {}", property.getValue());
+            LOG.info("Added property {}", property.getKey());            
         }
 
         DefaultMessage m = new DefaultMessage();
@@ -254,11 +253,39 @@ public class CamelProvisioningManager implements UserProvisioningManager {
 
     @Override
     public Long link(UserMod subjectMod) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        String uri = "direct:linkPort";
+        
+        PollingConsumer pollingConsumer = getConsumer(uri);
+
+        sendMessage("direct:linkUser", subjectMod);
+
+        Exchange o = pollingConsumer.receive();
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+
+        o.getIn().setBody((o.getIn().getBody(UserMod.class).getId()));
+        return o.getIn().getBody(Long.class);        
     }
 
     @Override
     public List<PropagationStatus> deprovision(Long user, Collection<String> resources) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        String uri = "direct:deprovisionPort";
+        
+        PollingConsumer pollingConsumer = getConsumer(uri);
+        
+        Map props = new HashMap<String, Object>();
+        props.put("resources", resources);
+
+        sendMessage("direct:deprovisionUser", user, props);
+        
+        Exchange o = pollingConsumer.receive();
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+        
+        return o.getIn().getBody(List.class);               
     }
 }

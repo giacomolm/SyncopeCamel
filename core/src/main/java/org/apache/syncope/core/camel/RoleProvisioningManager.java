@@ -19,8 +19,6 @@ package org.apache.syncope.core.camel;
 import org.apache.syncope.common.to.RoleTO;
 import org.apache.syncope.common.mod.RoleMod;
 
-public interface RoleProvisioningManager extends ProvisioningManager<RoleTO, RoleMod>{
-    
-    //public List<PropagationStatus> deprovision(final Long roleId, final Collection<String> resources);
+public interface RoleProvisioningManager extends ProvisioningManager<RoleTO, RoleMod>{ 
     
 }
