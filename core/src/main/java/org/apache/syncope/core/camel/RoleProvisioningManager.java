@@ -16,16 +16,11 @@
 
 package org.apache.syncope.core.camel;
 
-import java.util.Collection;
-import java.util.List;
-import org.apache.syncope.common.mod.AbstractAttributableMod;
-import org.apache.syncope.common.to.AbstractAttributableTO;
 import org.apache.syncope.common.to.RoleTO;
 import org.apache.syncope.common.mod.RoleMod;
-import org.apache.syncope.common.to.PropagationStatus;
 
 public interface RoleProvisioningManager extends ProvisioningManager<RoleTO, RoleMod>{
     
-    public List<PropagationStatus> deprovision(final Long roleId, final Collection<String> resources);
+    //public List<PropagationStatus> deprovision(final Long roleId, final Collection<String> resources);
     
 }

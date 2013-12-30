@@ -16,27 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.syncope.core.camel;
+package org.apache.syncope.common.types;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import org.apache.syncope.common.mod.AbstractAttributableMod;
-import org.apache.syncope.common.to.AbstractAttributableTO;
-import org.apache.syncope.common.to.PropagationStatus;
+import javax.xml.bind.annotation.XmlEnum;
 
-public interface ProvisioningManager<T extends AbstractAttributableTO, M extends AbstractAttributableMod>{
+@XmlEnum
+public enum ResourceDeAssociationActionType {
 
-    public Map.Entry<Long, List<PropagationStatus>> create(T subject);
-
-    public Map.Entry<Long, List<PropagationStatus>> update(M subjectMod);
-
-    public List<PropagationStatus> delete(Long subjectId);
-
-    public Long unlink(M subjectMod);
-
-    public Long link(M subjectMod);
-
-    public List<PropagationStatus> deprovision(Long user, Collection<String> resources);
+    /**
+     * Remove association between user/role on Syncope and external resource(s) without any propagation.
+     */
+    UNLINK,
+    /**
+     * Remove user/role from external resource(s).
+     */
+    DEPROVISION,
+    /**
+     * Unassign (unlink + de-provision) external resource(s) from user/role.
+     */
+    UNASSIGN
 
 }

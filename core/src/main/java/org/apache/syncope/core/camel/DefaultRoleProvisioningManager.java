@@ -24,9 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import org.apache.syncope.common.mod.RoleMod;
-import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.RoleTO;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
@@ -176,7 +176,7 @@ public class DefaultRoleProvisioningManager implements RoleProvisioningManager{
         final Set<String> noPropResourceName = role.getResourceNames();
         noPropResourceName.removeAll(resources);
         
-        final List<PropagationTask> tasks = propagationManager.getRoleDeleteTaskIds(roleId, noPropResourceName);
+        final List<PropagationTask> tasks = propagationManager.getRoleDeleteTaskIds(roleId, new HashSet<String>(resources), noPropResourceName);
         PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().getBean(
                 PropagationReporter.class);
         try {
@@ -185,8 +185,12 @@ public class DefaultRoleProvisioningManager implements RoleProvisioningManager{
             LOG.error("Error propagation primary resource", e);
             propagationReporter.onPrimaryResourceFailure(tasks);
         }
-        
         return propagationReporter.getStatuses();
+    }
+
+    @Override
+    public Long link(RoleMod subjectMod) {
+        return rwfAdapter.update(subjectMod).getResult();
     }
     
 }

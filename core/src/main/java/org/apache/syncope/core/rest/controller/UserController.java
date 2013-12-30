@@ -38,7 +38,6 @@ import org.apache.syncope.common.to.MembershipTO;
 import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.common.types.AttributableType;
 import org.apache.syncope.common.types.ClientExceptionType;
-import org.apache.syncope.core.camel.ProvisioningManager;
 import org.apache.syncope.common.SyncopeClientException;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.core.camel.UserProvisioningManager;
@@ -60,11 +59,11 @@ import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.util.AttributableUtil;
 import org.apache.syncope.core.util.EntitlementUtil;
 import org.apache.syncope.core.workflow.WorkflowResult;
-import org.apache.syncope.core.workflow.user.UserWorkflowAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 
 /**
  * Note that this controller does not extend AbstractTransactionalController, hence does not provide any
@@ -388,12 +387,21 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     public UserTO unlink(final Long userId, final Collection<String> resources) {
         final UserMod userMod = new UserMod();
         userMod.setId(userId);
-
         userMod.getResourcesToRemove().addAll(resources);
-
         Long updatedId = provisioningManager.unlink(userMod);
 
         return binder.getUserTO(updatedId);
+    }
+
+
+    @PreAuthorize("hasRole('USER_UPDATE')")
+    @Transactional(rollbackFor = { Throwable.class })
+    @Override
+    public UserTO link(final Long userId, final Collection<String> resources) {
+        final UserMod userMod = new UserMod();
+        userMod.setId(userId);
+        userMod.getResourcesToAdd().addAll(resources);
+        return binder.getUserTO(provisioningManager.link(userMod));
     }
 
     @PreAuthorize("hasRole('USER_UPDATE')")
@@ -403,6 +411,28 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         final UserMod userMod = new UserMod();
         userMod.setId(userId);
         userMod.getResourcesToRemove().addAll(resources);
+        return update(userMod);
+    }
+
+    @PreAuthorize("hasRole('USER_UPDATE')")
+    @Transactional(rollbackFor = { Throwable.class })
+    @Override
+    public UserTO assign(
+            final Long userId,
+            final Collection<String> resources,
+            final boolean changepwd,
+            final String password) {
+        final UserMod userMod = new UserMod();
+        userMod.setId(userId);
+        userMod.getResourcesToAdd().addAll(resources);
+
+        if (changepwd) {
+            StatusMod statusMod = new StatusMod();
+            statusMod.setOnSyncope(false);
+            statusMod.getResourceNames().addAll(resources);
+            userMod.setPwdPropRequest(statusMod);
+            userMod.setPassword(password);
+        }
 
         return update(userMod);
     }
@@ -411,24 +441,33 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     @Transactional(rollbackFor = { Throwable.class })
     @Override
     public UserTO deprovision(final Long userId, final Collection<String> resources) {
-        final SyncopeUser user = binder.getUserFromId(userId);
-
-        final Set<String> noPropResourceName = user.getResourceNames();
-        noPropResourceName.removeAll(resources);
-
-        final List<PropagationTask> tasks = propagationManager.getUserDeleteTaskIds(userId, noPropResourceName);
-        PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
-                getBean(PropagationReporter.class);
-        try {
-            taskExecutor.execute(tasks, propagationReporter);
-        } catch (PropagationException e) {
-            LOG.error("Error propagation primary resource", e);
-            propagationReporter.onPrimaryResourceFailure(tasks);
-        }
+        final SyncopeUser user = binder.getUserFromId(userId);        
+        
+        List<PropagationStatus> statuses = provisioningManager.deprovision(userId, resources);
 
         final UserTO updatedUserTO = binder.getUserTO(user);
-        updatedUserTO.getPropagationStatusTOs().addAll(propagationReporter.getStatuses());
+        updatedUserTO.getPropagationStatusTOs().addAll(statuses);
         return updatedUserTO;
+    }
+
+    @PreAuthorize("hasRole('USER_UPDATE')")
+    @Transactional(readOnly = true)
+    @Override
+    public UserTO provision(
+            final Long userId,
+            final Collection<String> resources,
+            final boolean changePwd,
+            final String password) {
+
+        final UserTO original = binder.getUserTO(userId);
+
+        //trick: assign and retrieve propagation statuses ...
+        original.getPropagationStatusTOs().addAll(
+                assign(userId, resources, changePwd, password).getPropagationStatusTOs());
+
+        // .... rollback.
+        TransactionInterceptor.currentTransactionStatus().setRollbackOnly();
+        return original;
     }
 
     /**

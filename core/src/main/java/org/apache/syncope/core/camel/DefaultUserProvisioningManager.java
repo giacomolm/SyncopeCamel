@@ -19,16 +19,21 @@
 package org.apache.syncope.core.camel;
 
 import java.util.AbstractMap;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
+import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
 import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.propagation.PropagationReporter;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
 import org.apache.syncope.core.propagation.impl.PropagationManager;
+import org.apache.syncope.core.rest.data.UserDataBinder;
 import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.apache.syncope.core.workflow.user.UserWorkflowAdapter;
@@ -48,6 +53,9 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
 
     @Autowired
     protected PropagationTaskExecutor taskExecutor;
+    
+    @Autowired
+    protected UserDataBinder binder;
 
     @Override
     public Map.Entry<Long, List<PropagationStatus>> create(final UserTO userTO) {
@@ -128,6 +136,11 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
     }
 
     @Override
+    public Long link(UserMod subjectMod) {
+        return uwfAdapter.update(subjectMod).getResult().getKey().getId();
+    }
+    
+    @Override
     public WorkflowResult<Long> activate(final Long userId, final String token) {
         return uwfAdapter.activate(userId, token);
     }
@@ -140,6 +153,28 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
     @Override
     public WorkflowResult<Long> suspend(final Long userId) {
         return uwfAdapter.suspend(userId);
+    }
+
+    @Override
+    public List<PropagationStatus> deprovision(Long userId, Collection<String> resources) {
+        
+        final SyncopeUser user = binder.getUserFromId(userId);        
+        
+        final Set<String> noPropResourceName = user.getResourceNames();
+        noPropResourceName.removeAll(resources);
+        
+        final List<PropagationTask> tasks =
+                propagationManager.getUserDeleteTaskIds(userId, new HashSet<String>(resources), noPropResourceName);
+        final PropagationReporter propagationReporter =
+                ApplicationContextProvider.getApplicationContext().getBean(PropagationReporter.class);
+        try {
+            taskExecutor.execute(tasks, propagationReporter);
+        } catch (PropagationException e) {
+            LOG.error("Error propagation primary resource", e);
+            propagationReporter.onPrimaryResourceFailure(tasks);
+        }
+        
+        return propagationReporter.getStatuses();
     }
 
 }

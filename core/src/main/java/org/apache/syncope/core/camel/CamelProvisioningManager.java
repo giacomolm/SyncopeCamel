@@ -20,6 +20,7 @@ package org.apache.syncope.core.camel;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -249,5 +250,15 @@ public class CamelProvisioningManager implements UserProvisioningManager {
         }
 
         return o.getIn().getBody(WorkflowResult.class);
+    }
+
+    @Override
+    public Long link(UserMod subjectMod) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public List<PropagationStatus> deprovision(Long user, Collection<String> resources) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

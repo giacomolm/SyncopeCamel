@@ -16,8 +16,6 @@
 
 package org.apache.syncope.core.camel;
 
-import org.apache.syncope.common.mod.AbstractAttributableMod;
-import org.apache.syncope.common.to.AbstractAttributableTO;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.common.mod.UserMod;

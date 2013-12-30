@@ -39,7 +39,8 @@ import org.apache.syncope.console.wicket.markup.html.form.AjaxDropDownChoicePane
 import org.apache.syncope.console.wicket.markup.html.form.AjaxPalettePanel;
 import org.apache.syncope.console.wicket.markup.html.form.AjaxTextFieldPanel;
 import org.apache.syncope.console.wicket.markup.html.form.FieldPanel;
-import org.apache.syncope.console.wicket.markup.html.form.MultiValueSelectorPanel;
+import org.apache.syncope.console.wicket.markup.html.form.MultiFieldPanel;
+import org.apache.syncope.console.wicket.markup.html.form.SpinnerFieldPanel;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.markup.html.basic.Label;
@@ -56,6 +57,7 @@ import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.util.ClassUtils;
 
 public class PolicyBeanPanel extends Panel {
 
@@ -128,15 +130,15 @@ public class PolicyBeanPanel extends Panel {
             private static final long serialVersionUID = 9101744072914090143L;
 
             @Override
+            @SuppressWarnings({ "unchecked", "rawtypes" })
             protected void populateItem(final ListItem<FieldWrapper> item) {
-
                 final FieldWrapper field = item.getModelObject();
 
                 final PropertyDescriptor propDesc = BeanUtils.getPropertyDescriptor(policy.getClass(), field.getName());
 
                 item.add(new Label("label", new ResourceModel(field.getName())));
 
-                final AbstractFieldPanel component;
+                AbstractFieldPanel component;
                 try {
                     if (field.getClassList() != null) {
                         component = new AjaxDropDownChoicePanel("field", field.getName(), new PropertyModel(policy,
@@ -174,9 +176,9 @@ public class PolicyBeanPanel extends Panel {
                                 values[0],
                                 values[0]));
 
-                    } else if (field.getType().equals(boolean.class) || field.getType().equals(Boolean.class)) {
-                        item.add(new AjaxCheckBoxPanel("check", field.getName(), new PropertyModel(policy,
-                                field.getName())));
+                    } else if (ClassUtils.isAssignable(Boolean.class, field.getType())) {
+                        item.add(new AjaxCheckBoxPanel("check", field.getName(),
+                                new PropertyModel<Boolean>(policy, field.getName())));
 
                         item.add(new Label("field", new Model(null)));
                     } else if (Collection.class.isAssignableFrom(field.getType())) {
@@ -197,18 +199,11 @@ public class PolicyBeanPanel extends Panel {
                                 }
                             }
 
-                            Collection collection =
-                                    (Collection) propDesc.getReadMethod().invoke(policy, new Object[] {});
-
-                            if (collection == null) {
-                                collection = new ArrayList();
-                                propDesc.getWriteMethod().invoke(policy, collection);
-                            }
-
                             component = new AjaxPalettePanel("field", new PropertyModel(policy, field.getName()),
                                     new ListModel<String>(values));
                             item.add(component);
 
+                            Collection<?> collection = (Collection) propDesc.getReadMethod().invoke(policy);
                             item.add(getActivationControl(component,
                                     !collection.isEmpty(), new ArrayList<String>(), new ArrayList<String>()));
                         } else {
@@ -216,7 +211,7 @@ public class PolicyBeanPanel extends Panel {
                                     new Model<String>(null));
                             panel.setRequired(true);
 
-                            component = new MultiValueSelectorPanel<String>("field",
+                            component = new MultiFieldPanel<String>("field",
                                     new PropertyModel(policy, field.getName()), panel);
 
                             item.add(component);
@@ -229,10 +224,10 @@ public class PolicyBeanPanel extends Panel {
                                     !((Collection) propDesc.getReadMethod().invoke(policy, new Object[] {})).isEmpty(),
                                     new ArrayList<String>(), (Serializable) reinitializedValue));
                         }
-                    } else if (field.getType().equals(int.class) || field.getType().equals(Integer.class)) {
-                        component = new AjaxTextFieldPanel("field", field.getName(),
-                                new PropertyModel(policy, field.getName()));
-
+                    } else if (ClassUtils.isAssignable(Number.class, field.getType())) {
+                        component = new SpinnerFieldPanel<Number>("field", field.getName(),
+                                (Class<Number>) field.getType(), new PropertyModel<Number>(policy, field.getName()),
+                                null, null, false);
                         item.add(component);
 
                         item.add(getActivationControl(component,
@@ -258,10 +253,10 @@ public class PolicyBeanPanel extends Panel {
         add(policies);
     }
 
-    private <T extends Serializable> AjaxCheckBoxPanel getActivationControl(final AbstractFieldPanel panel,
+    private <T extends Serializable> AjaxCheckBoxPanel getActivationControl(final AbstractFieldPanel<T> panel,
             final Boolean checked, final T defaultModelObject, final T reinitializedValue) {
 
-        final AjaxCheckBoxPanel check = new AjaxCheckBoxPanel("check", "check", new Model(checked));
+        final AjaxCheckBoxPanel check = new AjaxCheckBoxPanel("check", "check", new Model<Boolean>(checked));
 
         panel.setEnabled(checked);
 

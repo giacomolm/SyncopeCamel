@@ -18,10 +18,11 @@
  */
 package org.apache.syncope.console.pages.panels;
 
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.syncope.common.to.ResourceTO;
 import org.apache.syncope.common.types.ConnConfProperty;
 import org.apache.syncope.console.commons.Constants;
@@ -31,12 +32,12 @@ import org.apache.syncope.console.pages.ResourceModalPage.ResourceEvent;
 import org.apache.syncope.console.pages.panels.ResourceDetailsPanel.DetailsModEvent;
 import org.apache.syncope.console.rest.ConnectorRestClient;
 import org.apache.syncope.console.wicket.markup.html.form.AjaxCheckBoxPanel;
-import org.apache.syncope.console.wicket.markup.html.form.AjaxNumberFieldPanel;
 import org.apache.syncope.console.wicket.markup.html.form.AjaxPasswordFieldPanel;
 import org.apache.syncope.console.wicket.markup.html.form.AjaxTextFieldPanel;
 import org.apache.syncope.console.wicket.markup.html.form.FieldPanel;
-import org.apache.syncope.console.wicket.markup.html.form.MultiValueSelectorPanel;
-import org.apache.syncope.console.wicket.markup.html.form.MultiValueSelectorPanel.MultiValueSelectorEvent;
+import org.apache.syncope.console.wicket.markup.html.form.MultiFieldPanel;
+import org.apache.syncope.console.wicket.markup.html.form.MultiFieldPanel.MultiValueSelectorEvent;
+import org.apache.syncope.console.wicket.markup.html.form.SpinnerFieldPanel;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
@@ -62,23 +63,7 @@ public class ResourceConnConfPanel extends Panel {
     /**
      * Logger.
      */
-    protected static final Logger LOG = LoggerFactory.getLogger(ResourceConnConfPanel.class);
-
-    /**
-     * GuardedString is not in classpath.
-     */
-    private static final String GUARDED_STRING = "org.identityconnectors.common.security.GuardedString";
-
-    /**
-     * GuardedByteArray is not in classpath.
-     */
-    private static final String GUARDED_BYTE_ARRAY = "org.identityconnectors.common.security.GuardedByteArray";
-
-    /**
-     * Number java types.
-     */
-    private static final List<Class> NUMBER = Arrays.asList(new Class[]{Integer.class, Double.class, Long.class,
-                Float.class, Number.class, Integer.TYPE, Long.TYPE, Double.TYPE, Float.TYPE});
+    private static final Logger LOG = LoggerFactory.getLogger(ResourceConnConfPanel.class);
 
     @SpringBean
     private ConnectorRestClient connRestClient;
@@ -129,99 +114,118 @@ public class ResourceConnConfPanel extends Panel {
          * the list of overridable connector properties
          */
         connConfPropContainer.add(new AltListView<ConnConfProperty>("connectorProperties",
-                new PropertyModel(this, "connConfProperties")) {
+                new PropertyModel<List<ConnConfProperty>>(this, "connConfProperties")) {
 
-            private static final long serialVersionUID = 9101744072914090143L;
+                    private static final long serialVersionUID = 9101744072914090143L;
 
-            @Override
-            protected void populateItem(final ListItem<ConnConfProperty> item) {
-                final ConnConfProperty property = item.getModelObject();
+                    @Override
+                    @SuppressWarnings({ "unchecked", "rawtypes" })
+                    protected void populateItem(final ListItem<ConnConfProperty> item) {
+                        final ConnConfProperty property = item.getModelObject();
 
-                final Label label = new Label("connPropAttrSchema", property.getSchema().getDisplayName() == null
-                        || property.getSchema().getDisplayName().isEmpty()
-                        ? property.getSchema().getName()
-                        : property.getSchema().getDisplayName());
+                        final Label label = new Label("connPropAttrSchema",
+                                StringUtils.isBlank(property.getSchema().getDisplayName())
+                                ? property.getSchema().getName()
+                                : property.getSchema().getDisplayName());
 
-                item.add(label);
+                        item.add(label);
 
-                final FieldPanel field;
+                        FieldPanel<? extends Serializable> field;
 
-                boolean required = false;
+                        boolean required = false;
 
-                boolean isArray = false;
+                        boolean isArray = false;
 
-                if (GUARDED_STRING.equalsIgnoreCase(property.getSchema().getType())
-                        || GUARDED_BYTE_ARRAY.equalsIgnoreCase(property.getSchema().getType())) {
+                        if (Constants.GUARDED_STRING.equalsIgnoreCase(property.getSchema().getType())
+                        || Constants.GUARDED_BYTE_ARRAY.equalsIgnoreCase(property.getSchema().getType())) {
 
-                    field = new AjaxPasswordFieldPanel("panel", label.getDefaultModelObjectAsString(), new Model());
-                    ((PasswordTextField) field.getField()).setResetPassword(false);
+                            field = new AjaxPasswordFieldPanel("panel", label.getDefaultModelObjectAsString(),
+                                    new Model<String>());
+                            ((PasswordTextField) field.getField()).setResetPassword(false);
 
-                    required = property.getSchema().isRequired();
+                            required = property.getSchema().isRequired();
+                        } else {
+                            Class<?> propertySchemaClass;
+                            try {
+                                propertySchemaClass = ClassUtils.forName(property.getSchema().getType(),
+                                        ClassUtils.getDefaultClassLoader());
+                            } catch (Exception e) {
+                                LOG.error("Error parsing attribute type", e);
+                                propertySchemaClass = String.class;
+                            }
 
-                } else {
-                    Class<?> propertySchemaClass;
+                            if (ClassUtils.isAssignable(Number.class, propertySchemaClass)) {
+                                @SuppressWarnings("unchecked")
+                                Class<Number> numberClass = (Class<Number>) propertySchemaClass;
+                                field = new SpinnerFieldPanel<Number>("panel", label.getDefaultModelObjectAsString(),
+                                        numberClass, new Model<Number>(), null, null, false);
 
-                    try {
-                        propertySchemaClass = ClassUtils.forName(property.getSchema().getType(), ClassUtils.
-                                getDefaultClassLoader());
-                    } catch (Exception e) {
-                        LOG.error("Error parsing attribute type", e);
-                        propertySchemaClass = String.class;
-                    }
+                                required = property.getSchema().isRequired();
+                            } else if (ClassUtils.isAssignable(Boolean.class, propertySchemaClass)) {
+                                field = new AjaxCheckBoxPanel("panel", label.getDefaultModelObjectAsString(),
+                                        new Model<Boolean>());
+                            } else {
+                                field = new AjaxTextFieldPanel("panel", label.getDefaultModelObjectAsString(),
+                                        new Model<String>());
 
-                    if (NUMBER.contains(propertySchemaClass)) {
-                        field = new AjaxNumberFieldPanel("panel", label.getDefaultModelObjectAsString(), new Model(),
-                                ClassUtils.resolvePrimitiveIfNecessary(propertySchemaClass));
+                                required = property.getSchema().isRequired();
+                            }
 
-                        required = property.getSchema().isRequired();
-                    } else if (Boolean.class.equals(propertySchemaClass) || boolean.class.equals(propertySchemaClass)) {
-                        field = new AjaxCheckBoxPanel("panel", label.getDefaultModelObjectAsString(), new Model());
-                    } else {
-                        field = new AjaxTextFieldPanel("panel", label.getDefaultModelObjectAsString(), new Model());
-
-                        required = property.getSchema().isRequired();
-                    }
-
-                    if (String[].class.equals(propertySchemaClass)) {
-                        isArray = true;
-                    }
-                }
-
-                field.setTitle(property.getSchema().getHelpMessage());
-
-                if (isArray) {
-                    field.removeRequiredLabel();
-
-                    if (property.getValues().isEmpty()) {
-                        property.getValues().add(null);
-                    }
-
-                    final MultiValueSelectorPanel multiFields = new MultiValueSelectorPanel<String>("panel",
-                            new PropertyModel<List<String>>(property, "values"), field, true);
-
-                    item.add(multiFields);
-                } else {
-                    if (required) {
-                        field.addRequiredLabel();
-                    }
-
-                    field.getField().add(new AjaxFormComponentUpdatingBehavior(Constants.ON_CHANGE) {
-
-                        private static final long serialVersionUID = -1107858522700306810L;
-
-                        @Override
-                        protected void onUpdate(final AjaxRequestTarget target) {
-                            send(getPage(), Broadcast.BREADTH, new ConnConfModEvent(target, connConfProperties));
+                            if (String[].class.equals(propertySchemaClass)) {
+                                isArray = true;
+                            }
                         }
-                    });
 
-                    field.setNewModel(property.getValues());
-                    item.add(field);
-                }
+                        field.setTitle(property.getSchema().getHelpMessage());
 
-                resourceTO.getConnConfProperties().add(property);
+                        if (isArray) {
+                            field.removeRequiredLabel();
+
+                            if (property.getValues().isEmpty()) {
+                                property.getValues().add(null);
+                            }
+
+                            final MultiFieldPanel multiFields = new MultiFieldPanel("panel",
+                                    new PropertyModel<List<String>>(property, "values"), field, true);
+
+                            item.add(multiFields);
+                        } else {
+                            if (required) {
+                                field.addRequiredLabel();
+                            }
+
+                            field.getField().add(new AjaxFormComponentUpdatingBehavior(Constants.ON_CHANGE) {
+
+                                private static final long serialVersionUID = -1107858522700306810L;
+
+                                @Override
+                                protected void onUpdate(final AjaxRequestTarget target) {
+                                    send(getPage(), Broadcast.BREADTH,
+                                            new ConnConfModEvent(target, connConfProperties));
+                                }
+                            });
+
+                            field.setNewModel(toSerializableList(property.getValues()));
+                            item.add(field);
+                        }
+
+                        resourceTO.getConnConfProperties().add(property);
+                    }
+                });
+    }
+
+    private List<Serializable> toSerializableList(final List<Object> values) {
+        List<Serializable> result = new ArrayList<Serializable>();
+
+        for (Object value : values) {
+            if (value instanceof Serializable) {
+                result.add((Serializable) value);
+            } else {
+                LOG.warn("Not serializable: {}", value);
             }
-        });
+        }
+
+        return result;
     }
 
     /**

@@ -25,7 +25,13 @@ public abstract class AbstractResourceAssociator<T extends AbstractAttributableT
 
     public abstract T unlink(Long id, Collection<String> resources);
 
+    public abstract T link(Long id, Collection<String> resources);
+
     public abstract T unassign(Long id, Collection<String> resources);
 
+    public abstract T assign(Long id, Collection<String> resources, boolean changepwd, String password);
+
     public abstract T deprovision(Long userId, Collection<String> resources);
+
+    public abstract T provision(Long userId, Collection<String> resources, boolean changepwd, String password);
 }

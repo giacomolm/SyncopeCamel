@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +61,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 
 /**
  * Note that this controller does not extend AbstractTransactionalController, hence does not provide any
@@ -291,12 +293,20 @@ public class RoleController extends AbstractResourceAssociator<RoleTO> {
     public RoleTO unlink(final Long roleId, final Collection<String> resources) {
         final RoleMod roleMod = new RoleMod();
         roleMod.setId(roleId);
-
         roleMod.getResourcesToRemove().addAll(resources);
-
         final Long updatedResult = provisioningManager.unlink(roleMod);
 
         return binder.getRoleTO(updatedResult);
+    }
+    
+    @PreAuthorize("hasRole('ROLE_UPDATE')")
+    @Transactional(rollbackFor = { Throwable.class })
+    @Override
+    public RoleTO link(final Long roleId, final Collection<String> resources) {
+        final RoleMod roleMod = new RoleMod();
+        roleMod.setId(roleId);
+        roleMod.getResourcesToAdd().addAll(resources);
+        return binder.getRoleTO(provisioningManager.link(roleMod));
     }
 
     @PreAuthorize("hasRole('ROLE_UPDATE')")
@@ -306,8 +316,18 @@ public class RoleController extends AbstractResourceAssociator<RoleTO> {
         final RoleMod roleMod = new RoleMod();
         roleMod.setId(roleId);
         roleMod.getResourcesToRemove().addAll(resources);
-
         return update(roleMod);
+    }
+
+    @PreAuthorize("hasRole('ROLE_UPDATE')")
+    @Transactional(rollbackFor = { Throwable.class })
+    @Override
+    public RoleTO assign(
+            final Long roleId, final Collection<String> resources, final boolean changePwd, final String password) {
+        final RoleMod userMod = new RoleMod();
+        userMod.setId(roleId);
+        userMod.getResourcesToAdd().addAll(resources);
+        return update(userMod);
     }
 
     @PreAuthorize("hasRole('ROLE_UPDATE')")
@@ -316,22 +336,27 @@ public class RoleController extends AbstractResourceAssociator<RoleTO> {
     public RoleTO deprovision(final Long roleId, final Collection<String> resources) {
         final SyncopeRole role = binder.getRoleFromId(roleId);
 
-        final Set<String> noPropResourceName = role.getResourceNames();
-        noPropResourceName.removeAll(resources);
-
-        final List<PropagationTask> tasks = propagationManager.getRoleDeleteTaskIds(roleId, noPropResourceName);
-        PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().getBean(
-                PropagationReporter.class);
-        try {
-            taskExecutor.execute(tasks, propagationReporter);
-        } catch (PropagationException e) {
-            LOG.error("Error propagation primary resource", e);
-            propagationReporter.onPrimaryResourceFailure(tasks);
-        }
+        List<PropagationStatus> statuses = provisioningManager.deprovision(roleId, resources);
 
         final RoleTO updatedTO = binder.getRoleTO(role);
-        updatedTO.getPropagationStatusTOs().addAll(propagationReporter.getStatuses());
+        updatedTO.getPropagationStatusTOs().addAll(statuses);
         return updatedTO;
+    }
+
+    @PreAuthorize("hasRole('ROLE_UPDATE')")
+    @Transactional(rollbackFor = { Throwable.class })
+    @Override
+    public RoleTO provision(
+            final Long roleId, final Collection<String> resources, final boolean changePwd, final String password) {
+        final RoleTO original = binder.getRoleTO(roleId);
+
+        //trick: assign and retrieve propagation statuses ...
+        original.getPropagationStatusTOs().addAll(
+                assign(roleId, resources, changePwd, password).getPropagationStatusTOs());
+
+        // .... rollback.
+        TransactionInterceptor.currentTransactionStatus().setRollbackOnly();
+        return original;
     }
 
     /**
