@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package org.apache.syncope.core.camel;
+package org.apache.syncope.core.provisioning;
 
-import org.apache.syncope.core.workflow.WorkflowResult;
-import org.apache.syncope.common.to.UserTO;
-import org.apache.syncope.common.mod.UserMod;
+import org.apache.syncope.common.to.RoleTO;
+import org.apache.syncope.common.mod.RoleMod;
 
-public interface UserProvisioningManager extends ProvisioningManager<UserTO, UserMod>{
-    
-    public WorkflowResult<Long> activate(Long subjectId, String token);
-
-    public WorkflowResult<Long> reactivate(Long subjectId);
-
-    public WorkflowResult<Long> suspend(Long subjectId);
+public interface RoleProvisioningManager extends ProvisioningManager<RoleTO, RoleMod>{ 
     
 }

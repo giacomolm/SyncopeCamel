@@ -17,64 +17,57 @@
  * under the License.
  */
 
-package org.apache.syncope.core.camel.processors;
+package org.apache.syncope.core.provisioning.camel.processors;
 
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
-import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
+import org.apache.syncope.common.to.RoleTO;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.propagation.PropagationReporter;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
 import org.apache.syncope.core.propagation.impl.PropagationManager;
-import org.apache.syncope.core.rest.data.UserDataBinder;
 import org.apache.syncope.core.util.ApplicationContextProvider;
+import org.apache.syncope.core.util.EntitlementUtil;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DefaultUserUpdatePropagation implements Processor{
+public class DefaultRoleCreatePropagation  implements Processor{
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultUserUpdatePropagation.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultRoleCreatePropagation.class);
     
     @Autowired
     protected PropagationManager propagationManager;
     @Autowired
     protected PropagationTaskExecutor taskExecutor;
-    @Autowired
-    protected UserDataBinder binder;
     
     @Override
     public void process(Exchange exchange){
-                 
-            WorkflowResult<Map.Entry<UserMod, Boolean>> updated = (WorkflowResult) exchange.getIn().getBody();            
-            UserMod actual = exchange.getProperty("actual", UserMod.class);
-            
-            PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
-                    getBean(PropagationReporter.class);
+        
+        WorkflowResult<Long> created = (WorkflowResult) exchange.getIn().getBody();
+        RoleTO subject = exchange.getProperty("subject", RoleTO.class);
+                
+        EntitlementUtil.extendAuthContext(created.getResult());
 
-            List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(updated);
-            if (tasks.isEmpty()) {
-                // SYNCOPE-459: take care of user virtual attributes ...
-                binder.forceVirtualAttributes(
-                        updated.getResult().getKey().getId(),
-                        actual.getVirAttrsToRemove(),
-                        actual.getVirAttrsToUpdate());
-            } else {
-                try {
-                    taskExecutor.execute(tasks, propagationReporter);
-                } catch (PropagationException e) {
-                    LOG.error("Error propagation primary resource", e);
-                    propagationReporter.onPrimaryResourceFailure(tasks);
-                }
-            }
-            
-            Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(updated.getResult().getKey().getId(), propagationReporter.getStatuses());
-            exchange.getOut().setBody(result);            
+        List<PropagationTask> tasks = propagationManager.getRoleCreateTaskIds(created, subject.getVirAttrs());
+        PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().getBean(
+                PropagationReporter.class);
+        try {
+            taskExecutor.execute(tasks, propagationReporter);
+        } catch (PropagationException e) {
+            LOG.error("Error propagation primary resource", e);
+            propagationReporter.onPrimaryResourceFailure(tasks);
+        }
+        
+        Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(
+                created.getResult(), propagationReporter.getStatuses());
+        exchange.getOut().setBody(result);
     }
+    
 }

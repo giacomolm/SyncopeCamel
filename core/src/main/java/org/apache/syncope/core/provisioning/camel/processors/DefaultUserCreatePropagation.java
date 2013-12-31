@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.syncope.core.camel.processors;
+package org.apache.syncope.core.provisioning.camel.processors;
 
 import java.util.AbstractMap;
 import java.util.List;

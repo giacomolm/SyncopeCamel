@@ -61,8 +61,8 @@ under the License.
   <context:component-scan base-package="org.apache.syncope.core.workflow">
     <context:exclude-filter type="regex" expression=".*\.activiti\..*"/>
   </context:component-scan>
-  <bean id="defaultUserProvisioningManager" class="org.apache.syncope.core.camel.CamelUserProvisioningManager"/>
-  <bean id="defaultRoleProvisioningManager" class="org.apache.syncope.core.camel.DefaultRoleProvisioningManager"/>
+  <bean id="defaultUserProvisioningManager" class="org.apache.syncope.core.provisioning.camel.CamelUserProvisioningManager"/>
+  <bean id="defaultRoleProvisioningManager" class="org.apache.syncope.core.provisioning.camel.CamelRoleProvisioningManager"/>
 
   <bean id="nonJPAdbInitializer" class="org.springframework.jdbc.datasource.init.DataSourceInitializer">
     <property name="dataSource" ref="dataSource"/>

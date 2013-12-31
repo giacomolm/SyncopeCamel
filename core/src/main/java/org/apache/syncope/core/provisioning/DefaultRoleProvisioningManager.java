@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.syncope.core.camel;
+package org.apache.syncope.core.provisioning;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;

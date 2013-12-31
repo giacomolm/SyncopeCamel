@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.syncope.core.camel;
+package org.apache.syncope.core.provisioning.camel;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -36,6 +36,7 @@ import org.apache.camel.model.RoutesDefinition;
 import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
+import org.apache.syncope.core.provisioning.UserProvisioningManager;
 import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
