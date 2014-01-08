@@ -16,24 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.syncope.common.types;
+package org.apache.syncope.core.persistence.beans;
 
-import javax.xml.bind.annotation.XmlEnum;
+import javax.persistence.Entity;
 
-@XmlEnum
-public enum ResourceDeAssociationActionType {
+@Entity
+public class PushTask extends AbstractSyncTask {
+
+    private static final long serialVersionUID = -4141057723006682564L;
 
     /**
-     * Remove association between user/role on Syncope and external resource(s) without any propagation.
+     * Default constructor.
      */
-    UNLINK,
-    /**
-     * Remove user/role from external resource(s).
-     */
-    DEPROVISION,
-    /**
-     * Unassign (unlink + de-provision) external resource(s) from user/role.
-     */
-    UNASSIGN
-
+    public PushTask() {
+        super("org.apache.syncope.core.sync.impl.PushJob");
+    }
 }

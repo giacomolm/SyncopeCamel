@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlType;
 
 @XmlRootElement(name = "resourceName")
 @XmlType
-public class ResourceName extends AbstractWrappable {
+public class ResourceName extends AbstractWrappable<String> {
 
     private static final long serialVersionUID = -175720097924079573L;
 
