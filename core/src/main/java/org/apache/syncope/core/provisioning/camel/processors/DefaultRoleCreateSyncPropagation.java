@@ -1,3 +1,5 @@
+package org.apache.syncope.core.provisioning.camel.processors;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,60 +19,61 @@
  * under the License.
  */
 
-package org.apache.syncope.core.provisioning.camel.processors;
-
 import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
-import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.RoleTO;
-import org.apache.syncope.core.persistence.beans.PropagationTask;
-import org.apache.syncope.core.propagation.PropagationException;
-import org.apache.syncope.core.propagation.PropagationReporter;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
 import org.apache.syncope.core.propagation.impl.PropagationManager;
-import org.apache.syncope.core.util.ApplicationContextProvider;
-import org.apache.syncope.core.util.EntitlementUtil;
 import org.apache.syncope.core.workflow.WorkflowResult;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.syncope.common.to.AttributeTO;
+import org.apache.syncope.common.to.PropagationStatus;
+import org.apache.syncope.core.persistence.beans.PropagationTask;
+import org.apache.syncope.core.util.EntitlementUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
-public class DefaultRoleCreatePropagation  implements Processor{
+public class DefaultRoleCreateSyncPropagation implements Processor{
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultRoleCreatePropagation.class);
-    
+        
     @Autowired
     protected PropagationManager propagationManager;
     @Autowired
     protected PropagationTaskExecutor taskExecutor;
     
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultRoleCreateSyncPropagation.class);
+    
     @Override
-    public void process(Exchange exchange){
+    public void process(Exchange exchange){    
         
         WorkflowResult<Long> created = (WorkflowResult) exchange.getIn().getBody();
-        RoleTO subject = exchange.getProperty("subject", RoleTO.class);
-        Set<String> excludedResource = exchange.getProperty("excludedResources", Set.class);            
-                
+        
+        RoleTO actual = exchange.getProperty("subject", RoleTO.class);
+        Map<Long, String> roleOwnerMap = exchange.getProperty("roleOwnerMap", Map.class);
+        Set<String> excludedResource = exchange.getProperty("excludedResources", Set.class);
+        
+        AttributeTO roleOwner = actual.getAttrMap().get(StringUtils.EMPTY);
+
+        if (roleOwner != null) {
+            roleOwnerMap.put(created.getResult(), roleOwner.getValues().iterator().next());
+        }
+
         EntitlementUtil.extendAuthContext(created.getResult());
 
-        List<PropagationTask> tasks = propagationManager.getRoleCreateTaskIds(created, subject.getVirAttrs(),excludedResource);
-        PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().getBean(
-                PropagationReporter.class);
-        try {
-            taskExecutor.execute(tasks, propagationReporter);
-        } catch (PropagationException e) {
-            LOG.error("Error propagation primary resource", e);
-            propagationReporter.onPrimaryResourceFailure(tasks);
-        }
+        List<PropagationTask> tasks = propagationManager.getRoleCreateTaskIds(created,
+                actual.getVirAttrs(), excludedResource);
+
+        taskExecutor.execute(tasks);
         
         Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(
-                created.getResult(), propagationReporter.getStatuses());
+                created.getResult(), Collections.<PropagationStatus>emptyList());
         
         exchange.getOut().setBody(result);
     }
-    
 }

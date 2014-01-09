@@ -24,9 +24,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.syncope.common.mod.RoleMod;
+import org.apache.syncope.common.to.AttributeTO;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.RoleTO;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
@@ -44,6 +46,7 @@ import org.apache.syncope.core.workflow.role.RoleWorkflowAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.lang3.StringUtils;
 
 public class DefaultRoleProvisioningManager implements RoleProvisioningManager{
 
@@ -61,6 +64,11 @@ public class DefaultRoleProvisioningManager implements RoleProvisioningManager{
     
     @Override
     public Map.Entry<Long, List<PropagationStatus>> create(RoleTO subject) {
+        return create(subject, Collections.<String>emptySet());
+    }
+
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> create(RoleTO subject, Set<String> excludedResources) {
         
         WorkflowResult<Long> created;
         try{
@@ -86,7 +94,28 @@ public class DefaultRoleProvisioningManager implements RoleProvisioningManager{
                 created.getResult(), propagationReporter.getStatuses());
         return result;
     }
+    
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> createInSync(RoleTO roleTO, Map<Long, String> roleOwnerMap,Set<String> excludedResources) throws PropagationException{
+        
+        WorkflowResult<Long> created = rwfAdapter.create((RoleTO) roleTO);
+        AttributeTO roleOwner = roleTO.getAttrMap().get(StringUtils.EMPTY);
+        if (roleOwner != null) {
+            roleOwnerMap.put(created.getResult(), roleOwner.getValues().iterator().next());
+        }
 
+        EntitlementUtil.extendAuthContext(created.getResult());
+
+        List<PropagationTask> tasks = propagationManager.getRoleCreateTaskIds(created,
+                roleTO.getVirAttrs(), excludedResources);
+
+        taskExecutor.execute(tasks);
+        
+        Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(
+                created.getResult(), null);
+        return result;
+    }
+    
     @Override
     public Map.Entry<Long, List<PropagationStatus>> update(RoleMod subjectMod) {
         

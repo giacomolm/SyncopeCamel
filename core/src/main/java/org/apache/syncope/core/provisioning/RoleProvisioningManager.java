@@ -16,9 +16,18 @@
 
 package org.apache.syncope.core.provisioning;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.syncope.common.to.RoleTO;
 import org.apache.syncope.common.mod.RoleMod;
+import org.apache.syncope.common.to.PropagationStatus;
+import org.apache.syncope.core.propagation.PropagationException;
 
-public interface RoleProvisioningManager extends ProvisioningManager<RoleTO, RoleMod>{ 
+public interface RoleProvisioningManager extends ProvisioningManager<RoleTO, RoleMod>{
+    
+    public Map.Entry<Long, List<PropagationStatus>> create(final RoleTO roleTO, Set<String> excludedResources);
+    
+    public Map.Entry<Long, List<PropagationStatus>> createInSync(final RoleTO roleTO, Map<Long, String> roleOwnerMap,Set<String> excludedResources) throws PropagationException;
     
 }

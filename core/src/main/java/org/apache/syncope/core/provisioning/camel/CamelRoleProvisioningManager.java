@@ -22,10 +22,12 @@ package org.apache.syncope.core.provisioning.camel;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.PollingConsumer;
@@ -37,6 +39,7 @@ import org.apache.camel.model.RoutesDefinition;
 import org.apache.syncope.common.mod.RoleMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.RoleTO;
+import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.provisioning.RoleProvisioningManager;
 import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.slf4j.Logger;
@@ -132,10 +135,20 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
     
     @Override
     public Map.Entry<Long, List<PropagationStatus>> create(RoleTO subject) {
+        
+        return create(subject, Collections.<String>emptySet());        
+    }
+    
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> create(RoleTO roleTO, Set<String> excludedResources) {
+        
         String uri = "direct:createRolePort";
         PollingConsumer pollingConsumer = getConsumer(uri);
 
-        sendMessage("direct:createRole", subject);
+        Map<String, Object> props = new HashMap<String, Object>();
+        props.put("excludedResources", excludedResources);
+        
+        sendMessage("direct:createRole", roleTO, props);
 
         Exchange o = pollingConsumer.receive();
 
@@ -143,7 +156,28 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
             throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
 
-        return o.getIn().getBody(Map.Entry.class);        
+        return o.getIn().getBody(Map.Entry.class);
+    }
+    
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> createInSync(RoleTO roleTO, Map<Long, String> roleOwnerMap, Set<String> excludedResources) throws PropagationException {
+        
+        String uri = "direct:createRoleSyncPort";
+        PollingConsumer pollingConsumer = getConsumer(uri);
+
+        Map<String, Object> props = new HashMap<String, Object>();        
+        props.put("roleOwnerMap", roleOwnerMap);
+        props.put("excludedResources", excludedResources);
+           
+        sendMessage("direct:createRoleSync", roleTO, props);
+
+        Exchange o = pollingConsumer.receive();
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {            
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+        
+        return o.getIn().getBody(Map.Entry.class);
     }
 
     @Override
@@ -234,5 +268,5 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
         
         return o.getIn().getBody(List.class);
     }
-    
+   
 }

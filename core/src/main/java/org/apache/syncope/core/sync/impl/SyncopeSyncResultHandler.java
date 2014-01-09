@@ -33,7 +33,6 @@ import org.apache.syncope.core.persistence.dao.search.AttributableCond;
 import org.apache.syncope.core.persistence.dao.search.AttributeCond;
 import org.apache.syncope.core.persistence.dao.search.SearchCond;
 import org.apache.syncope.common.to.AbstractAttributableTO;
-import org.apache.syncope.common.to.AttributeTO;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.RoleTO;
 import org.apache.syncope.common.to.UserTO;
@@ -66,6 +65,7 @@ import org.apache.syncope.core.persistence.validation.attrvalue.ParsingValidatio
 import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
 import org.apache.syncope.core.propagation.impl.PropagationManager;
+import org.apache.syncope.core.provisioning.RoleProvisioningManager;
 import org.apache.syncope.core.provisioning.UserProvisioningManager;
 import org.apache.syncope.core.rest.controller.UnauthorizedRoleException;
 import org.apache.syncope.core.rest.data.AttributableTransformer;
@@ -181,7 +181,10 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
     protected Map<Long, String> roleOwnerMap = new HashMap<Long, String>();
     
     @Resource(name = "defaultUserProvisioningManager")
-    protected UserProvisioningManager provisioningManager;
+    protected UserProvisioningManager userProvisioningManager;
+    
+    @Resource(name = "defaultRoleProvisioningManager")
+    protected RoleProvisioningManager roleProvisioningManager;
 
     public Map<Long, String> getRoleOwnerMap() {
         return roleOwnerMap;
@@ -467,29 +470,19 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
 
                     //Delegate User Workflow Creation and its Propagation to provisioning manager
                     Map.Entry<Long, List<PropagationStatus>>
-                        created = provisioningManager.create((UserTO) actual, true, enabled,Collections.singleton(syncTask.getResource().getName()));                             
+                        created = userProvisioningManager.create((UserTO) actual, true, enabled,Collections.singleton(syncTask.getResource().getName()));                             
 
                     actual = userDataBinder.getUserTO(created.getKey());
 
                     result.setId(created.getKey());
                     result.setName(((UserTO) actual).getUsername());
                 } else if (AttributableType.ROLE == attrUtil.getType()) {
-                    WorkflowResult<Long> created = rwfAdapter.create((RoleTO) actual);
-                    AttributeTO roleOwner = actual.getAttrMap().get(StringUtils.EMPTY);
-                    if (roleOwner != null) {
-                        roleOwnerMap.put(created.getResult(), roleOwner.getValues().iterator().next());
-                    }
 
-                    EntitlementUtil.extendAuthContext(created.getResult());
+                    Map.Entry<Long, List<PropagationStatus>> created = roleProvisioningManager.createInSync((RoleTO) actual, roleOwnerMap, Collections.singleton(syncTask.getResource().getName()));
 
-                    List<PropagationTask> tasks = propagationManager.getRoleCreateTaskIds(created,
-                            actual.getVirAttrs(), Collections.singleton(syncTask.getResource().getName()));
+                    actual = roleDataBinder.getRoleTO(created.getKey());                                         
 
-                    taskExecutor.execute(tasks);
-
-                    actual = roleDataBinder.getRoleTO(created.getResult());
-
-                    result.setId(created.getResult());
+                    result.setId(created.getKey());
                     result.setName(((RoleTO) actual).getName());
                 }
                 output = actual;
@@ -553,7 +546,7 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
         LOG.debug("Transformed: {}", actual);
 
         Boolean enabled = readEnabled(delta.getObject());         
-        Map.Entry<Long, List<PropagationStatus>> updated = provisioningManager.updateInSync(actual, id, result,enabled, Collections.singleton(syncTask.getResource().getName()));
+        Map.Entry<Long, List<PropagationStatus>> updated = userProvisioningManager.updateInSync(actual, id, result,enabled, Collections.singleton(syncTask.getResource().getName()));
         
         final UserTO after = userDataBinder.getUserTO(updated.getKey());
         
@@ -744,7 +737,7 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
 
                     try {
                         if (AttributableType.USER == attrUtil.getType()) {
-                            provisioningManager.delete(id,Collections.<String>singleton(syncTask.getResource().getName()));
+                            userProvisioningManager.delete(id,Collections.<String>singleton(syncTask.getResource().getName()));
                         } else if (AttributableType.ROLE == attrUtil.getType()) {
                             rwfAdapter.delete(id);
                         }
