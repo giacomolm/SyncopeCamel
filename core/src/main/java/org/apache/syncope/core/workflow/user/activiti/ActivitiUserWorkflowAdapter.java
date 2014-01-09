@@ -30,11 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Resource;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.editor.constants.ModelDataJsonConstants;
@@ -229,13 +224,6 @@ public class ActivitiUserWorkflowAdapter extends AbstractUserWorkflowAdapter {
                 runtimeService.setVariable(user.getWorkflowId(), ENCRYPTED_PWD, encrypt(password));
             }
         }
-    }
-
-    @Override
-    public WorkflowResult<Map.Entry<Long, Boolean>> create(final UserTO userTO, final boolean disablePwdPolicyCheck)
-            throws WorkflowException {
-
-        return create(userTO, disablePwdPolicyCheck, null);
     }
 
     @Override

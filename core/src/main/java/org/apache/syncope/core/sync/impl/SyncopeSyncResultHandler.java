@@ -22,9 +22,9 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.syncope.common.mod.AttributeMod;
 import org.apache.syncope.common.mod.RoleMod;
@@ -34,6 +34,7 @@ import org.apache.syncope.core.persistence.dao.search.AttributeCond;
 import org.apache.syncope.core.persistence.dao.search.SearchCond;
 import org.apache.syncope.common.to.AbstractAttributableTO;
 import org.apache.syncope.common.to.AttributeTO;
+import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.RoleTO;
 import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.common.types.AttributableType;
@@ -62,10 +63,10 @@ import org.apache.syncope.core.persistence.dao.SchemaDAO;
 import org.apache.syncope.core.persistence.dao.UserDAO;
 import org.apache.syncope.core.persistence.dao.search.OrderByClause;
 import org.apache.syncope.core.persistence.validation.attrvalue.ParsingValidationException;
-import org.apache.syncope.core.propagation.PropagationByResource;
 import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
 import org.apache.syncope.core.propagation.impl.PropagationManager;
+import org.apache.syncope.core.provisioning.UserProvisioningManager;
 import org.apache.syncope.core.rest.controller.UnauthorizedRoleException;
 import org.apache.syncope.core.rest.data.AttributableTransformer;
 import org.apache.syncope.core.rest.data.RoleDataBinder;
@@ -76,7 +77,6 @@ import org.apache.syncope.core.util.AttributableUtil;
 import org.apache.syncope.core.util.EntitlementUtil;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.apache.syncope.core.workflow.role.RoleWorkflowAdapter;
-import org.apache.syncope.core.workflow.user.UserWorkflowAdapter;
 import org.identityconnectors.framework.common.objects.Attribute;
 import org.identityconnectors.framework.common.objects.AttributeUtil;
 import org.identityconnectors.framework.common.objects.ConnectorObject;
@@ -134,12 +134,6 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
     protected ConnObjectUtil connObjectUtil;
 
     /**
-     * User workflow adapter.
-     */
-    @Autowired
-    protected UserWorkflowAdapter uwfAdapter;
-
-    /**
      * Role workflow adapter.
      */
     @Autowired
@@ -185,6 +179,9 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
     protected AttributableTransformer attrTransformer;
 
     protected Map<Long, String> roleOwnerMap = new HashMap<Long, String>();
+    
+    @Resource(name = "defaultUserProvisioningManager")
+    protected UserProvisioningManager provisioningManager;
 
     public Map<Long, String> getRoleOwnerMap() {
         return roleOwnerMap;
@@ -467,18 +464,14 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
             try {
                 if (AttributableType.USER == attrUtil.getType()) {
                     Boolean enabled = readEnabled(delta.getObject());
-                    WorkflowResult<Map.Entry<Long, Boolean>> created =
-                            uwfAdapter.create((UserTO) actual, true, enabled);
 
-                    List<PropagationTask> tasks = propagationManager.getUserCreateTaskIds(created,
-                            ((UserTO) actual).getPassword(), actual.getVirAttrs(),
-                            Collections.singleton(syncTask.getResource().getName()));
+                    //Delegate User Workflow Creation and its Propagation to provisioning manager
+                    Map.Entry<Long, List<PropagationStatus>>
+                        created = provisioningManager.create((UserTO) actual, true, enabled,Collections.singleton(syncTask.getResource().getName()));                             
 
-                    taskExecutor.execute(tasks);
+                    actual = userDataBinder.getUserTO(created.getKey());
 
-                    actual = userDataBinder.getUserTO(created.getResult().getKey());
-
-                    result.setId(created.getResult().getKey());
+                    result.setId(created.getKey());
                     result.setName(((UserTO) actual).getUsername());
                 } else if (AttributableType.ROLE == attrUtil.getType()) {
                     WorkflowResult<Long> created = rwfAdapter.create((RoleTO) actual);
@@ -559,49 +552,11 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
         UserMod actual = attrTransformer.transform(userMod);
         LOG.debug("Transformed: {}", actual);
 
-        WorkflowResult<Map.Entry<UserMod, Boolean>> updated;
-        try {
-            updated = uwfAdapter.update(actual);
-        } catch (Exception e) {
-            LOG.error("Update of user {} failed, trying to sync its status anyway (if configured)", id, e);
-
-            result.setStatus(SyncResult.Status.FAILURE);
-            result.setMessage("Update failed, trying to sync status anyway (if configured)\n" + e.getMessage());
-
-            updated = new WorkflowResult<Map.Entry<UserMod, Boolean>>(
-                    new AbstractMap.SimpleEntry<UserMod, Boolean>(userMod, false), new PropagationByResource(),
-                    new HashSet<String>());
-        }
-
-        Boolean enabled = readEnabled(delta.getObject());
-        if (enabled != null) {
-            SyncopeUser user = userDAO.find(id);
-
-            WorkflowResult<Long> enableUpdate = null;
-            if (user.isSuspended() == null) {
-                enableUpdate = uwfAdapter.activate(id, null);
-            } else if (enabled && user.isSuspended()) {
-                enableUpdate = uwfAdapter.reactivate(id);
-            } else if (!enabled && !user.isSuspended()) {
-                enableUpdate = uwfAdapter.suspend(id);
-            }
-
-            if (enableUpdate != null) {
-                if (enableUpdate.getPropByRes() != null) {
-                    updated.getPropByRes().merge(enableUpdate.getPropByRes());
-                    updated.getPropByRes().purge();
-                }
-                updated.getPerformedTasks().addAll(enableUpdate.getPerformedTasks());
-            }
-        }
-
-        List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(
-                updated, updated.getResult().getKey().getPassword() != null,
-                Collections.singleton(syncTask.getResource().getName()));
-
-        taskExecutor.execute(tasks);
-
-        final UserTO after = userDataBinder.getUserTO(updated.getResult().getKey().getId());
+        Boolean enabled = readEnabled(delta.getObject());         
+        Map.Entry<Long, List<PropagationStatus>> updated = provisioningManager.updateInSync(actual, id, result,enabled, Collections.singleton(syncTask.getResource().getName()));
+        
+        final UserTO after = userDataBinder.getUserTO(updated.getKey());
+        
         actions.after(this, delta, after, result);
 
         return new AbstractMap.SimpleEntry<UserTO, UserTO>(before, after);
@@ -775,11 +730,12 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
                     try {
                         List<PropagationTask> tasks = Collections.<PropagationTask>emptyList();
                         if (AttributableType.USER == attrUtil.getType()) {
-                            tasks = propagationManager.getUserDeleteTaskIds(id, syncTask.getResource().getName());
+                            //tasks = propagationManager.getUserDeleteTaskIds(id, syncTask.getResource().getName());
                         } else if (AttributableType.ROLE == attrUtil.getType()) {
                             tasks = propagationManager.getRoleDeleteTaskIds(id, syncTask.getResource().getName());
+                            taskExecutor.execute(tasks);
                         }
-                        taskExecutor.execute(tasks);
+                        
                     } catch (Exception e) {
                         // A propagation failure doesn't imply a synchronization failure.
                         // The propagation exception status will be reported into the propagation task execution.
@@ -788,7 +744,7 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
 
                     try {
                         if (AttributableType.USER == attrUtil.getType()) {
-                            uwfAdapter.delete(id);
+                            provisioningManager.delete(id,Collections.<String>singleton(syncTask.getResource().getName()));
                         } else if (AttributableType.ROLE == attrUtil.getType()) {
                             rwfAdapter.delete(id);
                         }

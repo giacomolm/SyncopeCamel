@@ -47,13 +47,6 @@ public class NoOpUserWorkflowAdapter extends AbstractUserWorkflowAdapter {
     public static final String ENABLED = "enabled";
 
     @Override
-    public WorkflowResult<Map.Entry<Long, Boolean>> create(final UserTO userTO, final boolean disablePwdPolicyCheck)
-            throws WorkflowException {
-
-        return create(userTO, disablePwdPolicyCheck, null);
-    }
-
-    @Override
     public WorkflowResult<Map.Entry<Long, Boolean>> create(final UserTO userTO, final boolean disablePwdPolicyCheck,
             final Boolean enabled)
             throws WorkflowException {

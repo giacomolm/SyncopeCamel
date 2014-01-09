@@ -19,12 +19,16 @@
 package org.apache.syncope.core.provisioning.camel;
 
 import java.io.InputStream;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.PollingConsumer;
@@ -36,7 +40,9 @@ import org.apache.camel.model.RoutesDefinition;
 import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
+import org.apache.syncope.core.propagation.PropagationByResource;
 import org.apache.syncope.core.provisioning.UserProvisioningManager;
+import org.apache.syncope.core.sync.SyncResult;
 import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
@@ -132,10 +138,21 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
 
     @Override
     public Map.Entry<Long, List<PropagationStatus>> create(final UserTO userTO) {
+
+        return create(userTO, false, null, Collections.<String>emptySet());
+    }
+
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> create(final UserTO userTO, boolean disablePwdPolicyCheck, Boolean enabled,Set<String> excludedResources){
         String uri = "direct:createPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
+        
+        Map<String, Object> props = new HashMap<String, Object>();
+        props.put("disablePwdPolicyCheck", disablePwdPolicyCheck);
+        props.put("enabled", enabled);
+        props.put("excludedResources", excludedResources);
 
-        sendMessage("direct:createUser", userTO);
+        sendMessage("direct:createUser", userTO, props);
 
         Exchange o = pollingConsumer.receive();
 
@@ -145,7 +162,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
 
         return o.getIn().getBody(Map.Entry.class);
     }
-
+    
     /**
      *
      * @param userMod
@@ -167,13 +184,22 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
 
         return o.getIn().getBody(Map.Entry.class);
     }
-
+ 
     @Override
     public List<PropagationStatus> delete(final Long userId) {
+
+        return delete(userId, Collections.<String>emptySet());
+    }
+    
+    @Override
+    public List<PropagationStatus> delete(final Long userId, Set<String> excludedResources) {
         String uri = "direct:deletePort";
         PollingConsumer pollingConsumer = getConsumer(uri);
+        
+        Map<String, Object> props = new HashMap<String, Object>();
+        props.put("excludedResources", excludedResources);
 
-        sendMessage("direct:deleteUser", userId);
+        sendMessage("direct:deleteUser", userId,props);
 
         Exchange o = pollingConsumer.receive();
 
@@ -289,4 +315,38 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         
         return o.getIn().getBody(List.class);               
     }
+
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> updateInSync(UserMod userMod, Long id, SyncResult result, Boolean enabled, Set<String> excludedResources) {
+                
+        String uri = "direct:updateSyncPort";
+        PollingConsumer pollingConsumer = getConsumer(uri);
+
+        Map<String, Object> props = new HashMap<String, Object>();
+        props.put("id", id);
+        props.put("result", result);
+        props.put("enabled", enabled);
+        props.put("excludedResources",excludedResources);
+        
+        sendMessage("direct:updateSyncUser", userMod, props);
+
+        Exchange o = pollingConsumer.receive();
+        Exception e;
+        if (( e = (Exception) o.getProperty(Exchange.EXCEPTION_CAUGHT)) != null) {
+             
+            LOG.error("Update of user {} failed, trying to sync its status anyway (if configured)", id, e);
+
+            result.setStatus(SyncResult.Status.FAILURE);
+            result.setMessage("Update failed, trying to sync status anyway (if configured)\n" + e.getMessage());
+
+            WorkflowResult<Map.Entry<UserMod, Boolean>> updated = new WorkflowResult<Map.Entry<UserMod, Boolean>>(
+                    new AbstractMap.SimpleEntry<UserMod, Boolean>(userMod, false), new PropagationByResource(),
+                    new HashSet<String>());
+            sendMessage("direct:syncUserStatus", updated, props);
+            o = pollingConsumer.receive();
+        }
+
+        return o.getIn().getBody(Map.Entry.class);
+    }
+
 }

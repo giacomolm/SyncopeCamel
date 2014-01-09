@@ -33,29 +33,7 @@ import org.apache.syncope.core.workflow.WorkflowResult;
 public interface UserWorkflowAdapter extends WorkflowAdapter {
 
     /**
-     * Create an user.
-     *
-     * @param userTO user to be created and wether to propagate it as active
-     * @return user just created
-     * @throws UnauthorizedRoleException authorization exception
-     * @throws WorkflowException workflow exception
-     */
-    WorkflowResult<Map.Entry<Long, Boolean>> create(UserTO userTO) throws UnauthorizedRoleException, WorkflowException;
-
-    /**
-     * Create an user, optionally disabling password policy check.
-     *
-     * @param userTO user to be created and wether to propagate it as active
-     * @param disablePwdPolicyCheck disable password policy check?
-     * @return user just created
-     * @throws UnauthorizedRoleException authorization exception
-     * @throws WorkflowException workflow exception
-     */
-    WorkflowResult<Map.Entry<Long, Boolean>> create(UserTO userTO, boolean disablePwdPolicyCheck)
-            throws UnauthorizedRoleException, WorkflowException;
-
-    /**
-     * Create an user, optionally disabling password policy check.
+     * Create an user, optionally disabling password policy check and defining internal status.
      *
      * @param userTO user to be created and wether to propagate it as active
      * @param disablePwdPolicyCheck disable password policy check?

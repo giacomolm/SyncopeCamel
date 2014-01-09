@@ -20,6 +20,7 @@
 package org.apache.syncope.core.provisioning.camel.processors;
 
 import java.util.List;
+import java.util.Set;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
@@ -47,12 +48,14 @@ public class DefaultUserDeletePropagation implements Processor{
         Long userId = (Long) exchange.getIn().getBody();       
         LOG.info("UserId {} ", userId);
         
+        Set<String> excludedResource = exchange.getProperty("excludedResources", Set.class);            
+        
         // Note here that we can only notify about "delete", not any other
         // task defined in workflow process definition: this because this
         // information could only be available after uwfAdapter.delete(), which
         // will also effectively remove user from db, thus making virtually
         // impossible by NotificationManager to fetch required user information
-        List<PropagationTask> tasks = propagationManager.getUserDeleteTaskIds(userId);
+        List<PropagationTask> tasks = propagationManager.getUserDeleteTaskIds(userId,excludedResource);
 
         PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
                 getBean(PropagationReporter.class);

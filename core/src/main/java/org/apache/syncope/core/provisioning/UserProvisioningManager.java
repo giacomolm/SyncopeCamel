@@ -16,9 +16,14 @@
 
 package org.apache.syncope.core.provisioning;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.common.mod.UserMod;
+import org.apache.syncope.common.to.PropagationStatus;
+import org.apache.syncope.core.sync.SyncResult;
 
 public interface UserProvisioningManager extends ProvisioningManager<UserTO, UserMod>{
     
@@ -27,5 +32,11 @@ public interface UserProvisioningManager extends ProvisioningManager<UserTO, Use
     public WorkflowResult<Long> reactivate(Long subjectId);
 
     public WorkflowResult<Long> suspend(Long subjectId);
+    
+    public Map.Entry<Long, List<PropagationStatus>> create(final UserTO userTO, boolean disablePwdPolicyCheck, Boolean enabled,Set<String> excludedResources);
+    
+    public Map.Entry<Long, List<PropagationStatus>> updateInSync(final UserMod userMod,final Long id, final SyncResult result, Boolean enabled, Set<String> excludedResources);
+
+    public List<PropagationStatus> delete(Long subjectId, Set<String> excludedResources);    
     
 }

@@ -46,7 +46,7 @@ under the License.
             <simple>${body}</simple>
           </setProperty>
           <doTry>
-            <bean ref="uwfAdapter" method="create(${body})"/>
+            <bean ref="uwfAdapter" method="create(${body},${property.disablePwdPolicyCheck},${property.enabled})"/>
             <to uri="direct:propagateCreated"/>
             <doCatch>        
                 <exception>java.lang.RuntimeException</exception>
@@ -95,7 +95,36 @@ under the License.
                 <process ref="defaultUserUpdatePropagation" />
             <to uri="direct:updatePort"/>
         </route>
+                
+        <!--
+            UPDATE SYNC USER
+        -->
+        <route id="updateSyncUser">
+            <from uri="direct:updateSyncUser"/>            
+            <doTry>
+              <bean ref="uwfAdapter" method="update(${body})"/>
+              <to uri="direct:syncUserStatus"/>
+              <doCatch>        
+                  <exception>java.lang.RuntimeException</exception>
+                  <handled>
+                      <constant>false</constant>
+                  </handled>
+                  <to uri="direct:updateSyncPort"/>
+              </doCatch>
+            </doTry>
+        </route>
         
+        <route id="syncUserStatus">
+            <from uri="direct:syncUserStatus"/>
+                <process ref="userStatusOnSync" />
+            <to uri="direct:propagateSyncUpdated"/>
+        </route>
+        
+        <route id="propagateSyncUpdated">
+            <from uri="direct:propagateSyncUpdated"/>
+                <process ref="defaultUserUpdateSyncPropagation" />
+            <to uri="direct:updateSyncPort"/>
+        </route>
         <!--
             DELETE USER
         -->
@@ -354,7 +383,9 @@ under the License.
         
     </routeContext>
     <bean id="defaultUserCreatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserCreatePropagation"/>
-    <bean id="defaultUserUpdatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserUpdatePropagation"/>
+    <bean id="defaultUserUpdatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserUpdatePropagation"/>    
+    <bean id="userStatusOnSync" class="org.apache.syncope.core.provisioning.camel.processors.UserStatusOnSync"/>
+    <bean id="defaultUserUpdateSyncPropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserUpdateInSyncPropagation"/>
     <bean id="defaultUserDeletePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserDeletePropagation"/>    
     <bean id="defaultUserDeprovisionPropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserDeprovisionPropagation"/>    
     <bean id="defaultRoleCreatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultRoleCreatePropagation"/>

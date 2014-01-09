@@ -20,6 +20,7 @@ package org.apache.syncope.core.provisioning;
 
 import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +30,14 @@ import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
+import org.apache.syncope.core.persistence.dao.UserDAO;
+import org.apache.syncope.core.propagation.PropagationByResource;
 import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.propagation.PropagationReporter;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
 import org.apache.syncope.core.propagation.impl.PropagationManager;
 import org.apache.syncope.core.rest.data.UserDataBinder;
+import org.apache.syncope.core.sync.SyncResult;
 import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.apache.syncope.core.workflow.user.UserWorkflowAdapter;
@@ -55,19 +59,47 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
     protected PropagationTaskExecutor taskExecutor;
     
     @Autowired
-    protected UserDataBinder binder;
+    protected UserDataBinder binder;    
+
+    @Autowired
+    protected UserDAO userDAO;   
 
     @Override
     public Map.Entry<Long, List<PropagationStatus>> create(final UserTO userTO) {
         WorkflowResult<Map.Entry<Long, Boolean>> created;
         try {
-            created = uwfAdapter.create(userTO);
+            created = uwfAdapter.create(userTO,false,null);
         } catch (RuntimeException e) {
             throw e;
         }
 
         List<PropagationTask> tasks = propagationManager.getUserCreateTaskIds(
                 created, userTO.getPassword(), userTO.getVirAttrs());
+        PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
+                getBean(PropagationReporter.class);
+        try {
+            taskExecutor.execute(tasks, propagationReporter);
+        } catch (PropagationException e) {
+            LOG.error("Error propagation primary resource", e);
+            propagationReporter.onPrimaryResourceFailure(tasks);
+        }
+
+        Map.Entry<Long, List<PropagationStatus>> result = new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(
+                created.getResult().getKey(), propagationReporter.getStatuses());
+        return result;
+    }
+    
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> create(UserTO userTO, boolean disablePwdPolicyCheck, Boolean enabled, Set<String> excludedResources) {
+                WorkflowResult<Map.Entry<Long, Boolean>> created;
+        try {
+            created = uwfAdapter.create(userTO,disablePwdPolicyCheck,enabled);
+        } catch (RuntimeException e) {
+            throw e;
+        }
+
+        List<PropagationTask> tasks = propagationManager.getUserCreateTaskIds(
+                created, userTO.getPassword(), userTO.getVirAttrs(),excludedResources);
         PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
                 getBean(PropagationReporter.class);
         try {
@@ -106,10 +138,16 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
                 updated.getResult().getKey().getId(), propagationReporter.getStatuses());
         return result;
     }
-
+       
     @Override
     public List<PropagationStatus> delete(final Long userId) {
-        List<PropagationTask> tasks = propagationManager.getUserDeleteTaskIds(userId);
+
+        return delete(userId, Collections.<String>emptySet());
+    }
+
+        @Override
+    public List<PropagationStatus> delete(Long subjectId, Set<String> excludedResources) {
+        List<PropagationTask> tasks = propagationManager.getUserDeleteTaskIds(subjectId,excludedResources);
 
         PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
                 getBean(PropagationReporter.class);
@@ -121,7 +159,7 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
         }
 
         try {
-            uwfAdapter.delete(userId);
+            uwfAdapter.delete(subjectId);
         } catch (RuntimeException e) {
             throw e;
         }
@@ -129,6 +167,7 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
         return propagationReporter.getStatuses();
     }
 
+    
     @Override
     public Long unlink(UserMod userMod) {
         WorkflowResult<Map.Entry<UserMod, Boolean>> updated = uwfAdapter.update(userMod);
@@ -177,4 +216,57 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
         return propagationReporter.getStatuses();
     }
 
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> updateInSync(final UserMod userMod,final Long id, final SyncResult result, Boolean enabled, Set<String> excludedResources){
+        
+        WorkflowResult<Map.Entry<UserMod, Boolean>> updated;
+        try {
+            updated = uwfAdapter.update(userMod);
+        } catch (Exception e) {
+            LOG.error("Update of user {} failed, trying to sync its status anyway (if configured)", id, e);
+
+            result.setStatus(SyncResult.Status.FAILURE);
+            result.setMessage("Update failed, trying to sync status anyway (if configured)\n" + e.getMessage());
+
+            updated = new WorkflowResult<Map.Entry<UserMod, Boolean>>(
+                    new AbstractMap.SimpleEntry<UserMod, Boolean>(userMod, false), new PropagationByResource(),
+                    new HashSet<String>());
+        }
+
+        if (enabled != null) {
+            SyncopeUser user = userDAO.find(id);
+
+            WorkflowResult<Long> enableUpdate = null;
+            if (user.isSuspended() == null) {
+                enableUpdate = uwfAdapter.activate(id, null);
+            } else if (enabled && user.isSuspended()) {
+                enableUpdate = uwfAdapter.reactivate(id);
+            } else if (!enabled && !user.isSuspended()) {
+                enableUpdate = uwfAdapter.suspend(id);
+            }
+
+            if (enableUpdate != null) {
+                if (enableUpdate.getPropByRes() != null) {
+                    updated.getPropByRes().merge(enableUpdate.getPropByRes());
+                    updated.getPropByRes().purge();
+                }
+                updated.getPerformedTasks().addAll(enableUpdate.getPerformedTasks());
+            }
+        }
+
+            PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().
+                    getBean(PropagationReporter.class);
+
+            List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(updated,updated.getResult().getKey().getPassword() != null,excludedResources);
+                
+            try {
+                    taskExecutor.execute(tasks, propagationReporter);
+            } catch (PropagationException e) {
+                    LOG.error("Error propagation primary resource", e);
+                    propagationReporter.onPrimaryResourceFailure(tasks);
+            }
+            
+            return new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(updated.getResult().getKey().getId(), propagationReporter.getStatuses());
+
+    }
 }
