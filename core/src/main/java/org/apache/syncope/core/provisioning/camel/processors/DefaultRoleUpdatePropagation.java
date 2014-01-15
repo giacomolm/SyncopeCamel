@@ -21,6 +21,7 @@ package org.apache.syncope.core.provisioning.camel.processors;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.syncope.common.mod.RoleMod;
@@ -52,9 +53,10 @@ public class DefaultRoleUpdatePropagation implements Processor{
     public void process(Exchange exchange){
         WorkflowResult<Long> updated = (WorkflowResult) exchange.getIn().getBody();            
         RoleMod subjectMod = exchange.getProperty("subjectMod", RoleMod.class);   
+        Set<String> excludedResource = exchange.getProperty("excludedResources", Set.class);
         
         List<PropagationTask> tasks = propagationManager.getRoleUpdateTaskIds(updated,
-                subjectMod.getVirAttrsToRemove(), subjectMod.getVirAttrsToUpdate());
+                subjectMod.getVirAttrsToRemove(), subjectMod.getVirAttrsToUpdate(),excludedResource);
         PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().getBean(
                 PropagationReporter.class);
         try {

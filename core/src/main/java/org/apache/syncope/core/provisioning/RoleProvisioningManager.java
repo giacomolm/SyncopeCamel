@@ -30,4 +30,6 @@ public interface RoleProvisioningManager extends ProvisioningManager<RoleTO, Rol
     
     public Map.Entry<Long, List<PropagationStatus>> createInSync(final RoleTO roleTO, Map<Long, String> roleOwnerMap,Set<String> excludedResources) throws PropagationException;
     
+    public Map.Entry<Long, List<PropagationStatus>> update(RoleMod subjectMod, Set<String> excludedResources);
+    
 }

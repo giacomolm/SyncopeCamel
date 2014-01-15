@@ -54,8 +54,6 @@ import org.apache.syncope.core.rest.data.RoleDataBinder;
 import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.util.AttributableUtil;
 import org.apache.syncope.core.util.EntitlementUtil;
-import org.apache.syncope.core.workflow.WorkflowResult;
-import org.apache.syncope.core.workflow.role.RoleWorkflowAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -83,9 +81,6 @@ public class RoleController extends AbstractResourceAssociator<RoleTO> {
 
     @Autowired
     protected RoleDataBinder binder;
-
-    @Autowired
-    protected RoleWorkflowAdapter rwfAdapter;
 
     @Autowired
     protected PropagationManager propagationManager;

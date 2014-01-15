@@ -49,7 +49,6 @@ import org.apache.syncope.core.persistence.beans.AbstractAttrValue;
 import org.apache.syncope.core.persistence.beans.AbstractAttributable;
 import org.apache.syncope.core.persistence.beans.AbstractMappingItem;
 import org.apache.syncope.core.persistence.beans.AbstractNormalSchema;
-import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.persistence.beans.SyncPolicy;
 import org.apache.syncope.core.persistence.beans.role.SyncopeRole;
 import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
@@ -75,8 +74,6 @@ import org.apache.syncope.core.sync.SyncResult;
 import org.apache.syncope.core.sync.SyncCorrelationRule;
 import org.apache.syncope.core.util.AttributableUtil;
 import org.apache.syncope.core.util.EntitlementUtil;
-import org.apache.syncope.core.workflow.WorkflowResult;
-import org.apache.syncope.core.workflow.role.RoleWorkflowAdapter;
 import org.identityconnectors.framework.common.objects.Attribute;
 import org.identityconnectors.framework.common.objects.AttributeUtil;
 import org.identityconnectors.framework.common.objects.ConnectorObject;
@@ -132,12 +129,6 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
      */
     @Autowired
     protected ConnObjectUtil connObjectUtil;
-
-    /**
-     * Role workflow adapter.
-     */
-    @Autowired
-    protected RoleWorkflowAdapter rwfAdapter;
 
     /**
      * Propagation Manager.
@@ -573,7 +564,9 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
         RoleMod actual = attrTransformer.transform(roleMod);
         LOG.debug("Transformed: {}", actual);
 
-        WorkflowResult<Long> updated = rwfAdapter.update(actual);
+        Map.Entry<Long, List<PropagationStatus>> updated = roleProvisioningManager.update(roleMod);
+                
+        //moved after role provisioning manager
         String roleOwner = null;
         for (AttributeMod attrMod : actual.getAttrsToUpdate()) {
             if (attrMod.getSchema().isEmpty()) {
@@ -581,17 +574,10 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
             }
         }
         if (roleOwner != null) {
-            roleOwnerMap.put(updated.getResult(), roleOwner);
+            roleOwnerMap.put(updated.getKey(), roleOwner);
         }
 
-        List<PropagationTask> tasks = propagationManager.getRoleUpdateTaskIds(updated,
-                actual.getVirAttrsToRemove(),
-                actual.getVirAttrsToUpdate(),
-                Collections.singleton(syncTask.getResource().getName()));
-
-        taskExecutor.execute(tasks);
-
-        final RoleTO after = roleDataBinder.getRoleTO(updated.getResult());
+        final RoleTO after = roleDataBinder.getRoleTO(updated.getKey());
 
         actions.after(this, delta, after, result);
 
@@ -721,25 +707,10 @@ public class SyncopeSyncResultHandler extends AbstractSyncopeSyncResultHandler {
 
                 if (!dryRun) {
                     try {
-                        List<PropagationTask> tasks = Collections.<PropagationTask>emptyList();
-                        if (AttributableType.USER == attrUtil.getType()) {
-                            //tasks = propagationManager.getUserDeleteTaskIds(id, syncTask.getResource().getName());
-                        } else if (AttributableType.ROLE == attrUtil.getType()) {
-                            tasks = propagationManager.getRoleDeleteTaskIds(id, syncTask.getResource().getName());
-                            taskExecutor.execute(tasks);
-                        }
-                        
-                    } catch (Exception e) {
-                        // A propagation failure doesn't imply a synchronization failure.
-                        // The propagation exception status will be reported into the propagation task execution.
-                        LOG.error("Could not propagate user " + id, e);
-                    }
-
-                    try {
                         if (AttributableType.USER == attrUtil.getType()) {
                             userProvisioningManager.delete(id,Collections.<String>singleton(syncTask.getResource().getName()));
                         } else if (AttributableType.ROLE == attrUtil.getType()) {
-                            rwfAdapter.delete(id);
+                            roleProvisioningManager.delete(id);                            
                         }
                         output = null;
                         resultStatus = Result.SUCCESS;

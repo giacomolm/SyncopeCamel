@@ -99,7 +99,7 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
 
     protected void sendMessage(String uri, Object obj, Map<String, Object> properties) {
         Exchange exc = new DefaultExchange(getContext());
-
+        
         Iterator<Map.Entry<String, Object>> it = properties.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> property = it.next();
@@ -114,7 +114,7 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
         template.send(uri, exc);
     }
 
-    protected PollingConsumer getConsumer(String uri) {
+    protected PollingConsumer getConsumer(final String uri) {
 
         if (!knownUri.contains(uri)) {
             knownUri.add(uri);
@@ -183,10 +183,19 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
     @Override
     public Map.Entry<Long, List<PropagationStatus>> update(RoleMod subjectMod) {
                 
+        return update(subjectMod, Collections.<String>emptySet());
+    }
+    
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> update(RoleMod subjectMod, Set<String> excludedResources) {
+
         String uri = "direct:updateRolePort";
         PollingConsumer pollingConsumer = getConsumer(uri);
+        
+        Map<String, Object> props = new HashMap<String, Object>();
+        props.put("excludedResources", excludedResources);
 
-        sendMessage("direct:updateRole",subjectMod);
+        sendMessage("direct:updateRole",subjectMod, props);
 
         Exchange o = pollingConsumer.receive();
 
@@ -194,7 +203,7 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
             throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
 
-        return o.getIn().getBody(Map.Entry.class);
+        return o.getIn().getBody(Map.Entry.class);        
     }
 
     @Override

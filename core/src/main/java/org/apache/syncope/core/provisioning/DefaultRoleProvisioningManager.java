@@ -119,6 +119,12 @@ public class DefaultRoleProvisioningManager implements RoleProvisioningManager{
     @Override
     public Map.Entry<Long, List<PropagationStatus>> update(RoleMod subjectMod) {
         
+        return update(subjectMod, Collections.<String>emptySet());
+    }
+    
+    @Override
+    public Map.Entry<Long, List<PropagationStatus>> update(RoleMod subjectMod, Set<String> excludedResources) {
+                
         WorkflowResult<Long> updated;
         
         try{
@@ -129,7 +135,7 @@ public class DefaultRoleProvisioningManager implements RoleProvisioningManager{
         }
 
         List<PropagationTask> tasks = propagationManager.getRoleUpdateTaskIds(updated,
-                subjectMod.getVirAttrsToRemove(), subjectMod.getVirAttrsToUpdate());
+                subjectMod.getVirAttrsToRemove(), subjectMod.getVirAttrsToUpdate(),excludedResources);
         PropagationReporter propagationReporter = ApplicationContextProvider.getApplicationContext().getBean(
                 PropagationReporter.class);
         try {
