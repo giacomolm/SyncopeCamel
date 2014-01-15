@@ -247,6 +247,17 @@ under the License.
       <url>http://www.liquid-reality.de/</url>
       <email>chris@die-schneider.net</email>
     </developer>
+    <developer>
+      <id>gwimmel</id>
+      <name>Guido Wimmel</name>
+      <organization>Stadtwerke München Services GmbH</organization>
+      <organizationUrl>http://www.swm.de/</organizationUrl>
+      <roles>
+        <role>committer</role>
+      </roles>
+      <url>http://people.apache.org/~gwimmel/</url>
+      <email>gwimmel@apache.org</email>
+    </developer>
   </developers>
 
   <contributors>
@@ -276,12 +287,6 @@ under the License.
       <organization>Tirasa</organization>
       <organizationUrl>http://www.tirasa.net/</organizationUrl>
     </contributor>
-    <contributor>
-      <name>Guido Wimmel</name>
-      <email>guido.wimmel at gmx.net</email>
-      <organization>Stadtwerke München Services GmbH</organization>
-      <organizationUrl>http://www.swm.de/</organizationUrl>
-    </contributor>
   </contributors>
 
   <prerequisites>
@@ -304,7 +309,7 @@ under the License.
     <connid.ad.version>1.1.2</connid.ad.version>
 
     <commons-jexl.version>2.1.1</commons-jexl.version>
-    <commons-lang.version>3.2</commons-lang.version>
+    <commons-lang.version>3.2.1</commons-lang.version>
 
     <activiti.version>5.14</activiti.version>
     
@@ -314,7 +319,7 @@ under the License.
     <camel.version>2.12.2</camel.version>
     <spring.version>3.2.6.RELEASE</spring.version>
     <spring-security.version>3.1.4.RELEASE</spring-security.version>
-    <jackson.version>2.2.3</jackson.version>
+    <jackson.version>2.3.1</jackson.version>
     <xstream.version>1.4.6</xstream.version>
     <velocity.version>1.7</velocity.version>
     <quartz.version>2.2.1</quartz.version>
@@ -325,9 +330,9 @@ under the License.
 
     <cocoon.version>3.0.0-alpha-3</cocoon.version>
 
-    <wicket.version>6.12.0</wicket.version>
+    <wicket.version>6.14.0-SNAPSHOT</wicket.version>
 
-    <groovy.version>2.1.9</groovy.version>
+    <groovy.version>2.2.1</groovy.version>
 
     <h2.version>1.3.174</h2.version>
 
@@ -340,7 +345,7 @@ under the License.
 
     <apacheds.version>1.5.7</apacheds.version>
 
-    <tomcat.version>7.0.47</tomcat.version>
+    <tomcat.version>7.0.50</tomcat.version>
 
     <jasypt.version>1.9.1</jasypt.version>
  
