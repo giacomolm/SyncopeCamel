@@ -236,21 +236,21 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         return updatedTO;
     }
 
-    protected WorkflowResult<Long> setStatusOnWfAdapter(final SyncopeUser user, final StatusMod statusMod) {
-        WorkflowResult<Long> updated;
+    protected Map.Entry<Long, List<PropagationStatus>> setStatusOnWfAdapter(final SyncopeUser user, final StatusMod statusMod) {
+        Map.Entry<Long, List<PropagationStatus>> updated;
 
         switch (statusMod.getType()) {
             case SUSPEND:
-                updated = provisioningManager.suspend(user.getId());
+                updated = provisioningManager.suspend(user, statusMod);
                 break;
 
             case REACTIVATE:
-                updated = provisioningManager.reactivate(user.getId());
+                updated = provisioningManager.reactivate(user, statusMod);
                 break;
 
             case ACTIVATE:
             default: 
-                updated = provisioningManager.activate(user.getId(), statusMod.getToken());
+                updated = provisioningManager.activate(user, statusMod);
                 break;
 
         }
@@ -263,30 +263,11 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     public UserTO status(final StatusMod statusMod) {
         SyncopeUser user = binder.getUserFromId(statusMod.getId());
 
-        WorkflowResult<Long> updated;
-        if (statusMod.isOnSyncope()) {
+        Map.Entry<Long, List<PropagationStatus>> 
             updated = setStatusOnWfAdapter(user, statusMod);
-        } else {
-            updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
-        }
 
-        // Resources to exclude from propagation
-        Set<String> resourcesToBeExcluded = new HashSet<String>(user.getResourceNames());
-        resourcesToBeExcluded.removeAll(statusMod.getResourceNames());
-
-        List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(
-                user, statusMod.getType() != StatusMod.ModType.SUSPEND, resourcesToBeExcluded);
-        PropagationReporter propReporter =
-                ApplicationContextProvider.getApplicationContext().getBean(PropagationReporter.class);
-        try {
-            taskExecutor.execute(tasks, propReporter);
-        } catch (PropagationException e) {
-            LOG.error("Error propagation primary resource", e);
-            propReporter.onPrimaryResourceFailure(tasks);
-        }
-
-        final UserTO savedTO = binder.getUserTO(updated.getResult());
-        savedTO.getPropagationStatusTOs().addAll(propReporter.getStatuses());
+        final UserTO savedTO = binder.getUserTO(updated.getKey());
+        savedTO.getPropagationStatusTOs().addAll(updated.getValue());
         return savedTO;
     }
 

@@ -18,34 +18,21 @@
  */
 package org.apache.syncope.core.workflow;
 
-import java.util.AbstractMap.SimpleEntry;
-import java.util.List;
-import java.util.Map;
-import org.apache.syncope.common.mod.UserMod;
-import org.apache.syncope.core.persistence.beans.PropagationTask;
+import javax.annotation.Resource;
 import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
 import org.apache.syncope.core.policy.UserSuspender;
-import org.apache.syncope.core.propagation.PropagationTaskExecutor;
-import org.apache.syncope.core.propagation.impl.PropagationManager;
-import org.apache.syncope.core.workflow.user.UserWorkflowAdapter;
+import org.apache.syncope.core.provisioning.UserProvisioningManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class WorkflowUserSuspender implements UserSuspender {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkflowUserSuspender.class);
-
-    @Autowired
-    private UserWorkflowAdapter uwfAdapter;
-
-    @Autowired
-    private PropagationManager propagationManager;
-
-    @Autowired
-    private PropagationTaskExecutor taskExecutor;
+  
+    @Resource(name = "defaultUserProvisioningManager")
+    protected UserProvisioningManager provisioningManager;
 
     @Override
     public void suspend(final SyncopeUser user, final boolean suspend) {
@@ -55,21 +42,10 @@ public class WorkflowUserSuspender implements UserSuspender {
             // reduce failed logins number to avoid multiple request
             user.setFailedLogins(user.getFailedLogins() - 1);
 
-            // disable user
-            final WorkflowResult<Long> updated = uwfAdapter.suspend(user);
-
-            // propagate suspension if and only if it is required by policy
-            if (suspend) {
-                UserMod userMod = new UserMod();
-                userMod.setId(updated.getResult());
-
-                final List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(
-                        new WorkflowResult<Map.Entry<UserMod, Boolean>>(
-                                new SimpleEntry<UserMod, Boolean>(userMod, Boolean.FALSE),
-                                updated.getPropByRes(), updated.getPerformedTasks()));
-
-                taskExecutor.execute(tasks);
-            }
+            // disable user and propagate suspension if and only if it is required by policy          
+            
+            provisioningManager.innerSuspend(user, suspend);
+            
         } catch (Exception e) {
             LOG.error("Error during user suspension", e);
         }

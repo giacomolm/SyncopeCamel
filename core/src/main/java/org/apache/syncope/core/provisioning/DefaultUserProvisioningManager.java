@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.syncope.common.mod.StatusMod;
 import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
@@ -180,18 +181,62 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
     }
     
     @Override
-    public WorkflowResult<Long> activate(final Long userId, final String token) {
-        return uwfAdapter.activate(userId, token);
+    public Map.Entry<Long, List<PropagationStatus>> activate(SyncopeUser user, StatusMod statusMod) {
+        WorkflowResult<Long> updated;
+        if (statusMod.isOnSyncope()) {
+            updated = uwfAdapter.activate(user.getId(), statusMod.getToken());
+        } else {
+            updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
+        }
+  
+        List<PropagationStatus> statuses = propagateStatus(user, statusMod);
+        return new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(updated.getResult(), statuses);
     }
 
     @Override
-    public WorkflowResult<Long> reactivate(final Long userId) {
-        return uwfAdapter.reactivate(userId);
+    public Map.Entry<Long, List<PropagationStatus>> reactivate(SyncopeUser user, StatusMod statusMod) {
+        WorkflowResult<Long> updated;
+        if (statusMod.isOnSyncope()) {
+            updated = uwfAdapter.reactivate(user.getId());
+        } else {
+            updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
+        }
+        
+        List<PropagationStatus> statuses = propagateStatus(user, statusMod);
+        return new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(updated.getResult(), statuses);
     }
 
     @Override
-    public WorkflowResult<Long> suspend(final Long userId) {
-        return uwfAdapter.suspend(userId);
+    public Map.Entry<Long, List<PropagationStatus>> suspend(SyncopeUser user, StatusMod statusMod) {
+        WorkflowResult<Long> updated;
+        if (statusMod.isOnSyncope()) {
+            updated = uwfAdapter.suspend(user.getId());
+        } else {
+            updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
+        }
+        
+        List<PropagationStatus> statuses = propagateStatus(user, statusMod);
+        return new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(updated.getResult(), statuses);
+    }
+    
+    public List<PropagationStatus> propagateStatus(SyncopeUser user, StatusMod statusMod){
+                
+        Set<String> resourcesToBeExcluded = new HashSet<String>(user.getResourceNames());
+        resourcesToBeExcluded.removeAll(statusMod.getResourceNames());
+
+        List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(
+                user, statusMod.getType() != StatusMod.ModType.SUSPEND, resourcesToBeExcluded);
+        PropagationReporter propReporter =
+                ApplicationContextProvider.getApplicationContext().getBean(PropagationReporter.class);
+        try {
+            taskExecutor.execute(tasks, propReporter);
+        } catch (PropagationException e) {
+            LOG.error("Error propagation primary resource", e);
+            propReporter.onPrimaryResourceFailure(tasks);
+        }
+        
+        return propReporter.getStatuses();
+        
     }
 
     @Override
@@ -268,5 +313,24 @@ public class DefaultUserProvisioningManager implements UserProvisioningManager{
             
             return new AbstractMap.SimpleEntry<Long, List<PropagationStatus>>(updated.getResult().getKey().getId(), propagationReporter.getStatuses());
 
+    }
+
+    @Override
+    public void innerSuspend(SyncopeUser user, boolean suspend) {
+        
+            final WorkflowResult<Long> updated = uwfAdapter.suspend(user);
+
+            // propagate suspension if and only if it is required by policy
+            if (suspend) {
+                UserMod userMod = new UserMod();
+                userMod.setId(updated.getResult());
+
+                final List<PropagationTask> tasks = propagationManager.getUserUpdateTaskIds(
+                        new WorkflowResult<Map.Entry<UserMod, Boolean>>(
+                                new AbstractMap.SimpleEntry<UserMod, Boolean>(userMod, Boolean.FALSE),
+                                updated.getPropByRes(), updated.getPerformedTasks()));
+
+                taskExecutor.execute(tasks);
+            }            
     }
 }

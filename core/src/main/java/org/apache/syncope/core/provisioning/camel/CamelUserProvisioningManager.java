@@ -37,9 +37,11 @@ import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.impl.DefaultMessage;
 import org.apache.camel.model.RoutesDefinition;
+import org.apache.syncope.common.mod.StatusMod;
 import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
+import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
 import org.apache.syncope.core.propagation.PropagationByResource;
 import org.apache.syncope.core.provisioning.UserProvisioningManager;
 import org.apache.syncope.core.sync.SyncResult;
@@ -228,14 +230,21 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
     }
 
     @Override
-    public WorkflowResult<Long> activate(final Long userId, final String token) {
-        String uri = "direct:activatePort";
+    public Map.Entry<Long, List<PropagationStatus>> activate(SyncopeUser user, StatusMod statusMod) {
+        String uri = "direct:statusPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
 
         Map props = new HashMap<String, Object>();
-        props.put("token", token);
-
-        sendMessage("direct:activateUser", userId, props);
+        props.put("token", statusMod.getToken());
+        props.put("user", user);
+        props.put("statusMod", statusMod);
+        
+        if (statusMod.isOnSyncope()) {
+            sendMessage("direct:activateUser", user.getId(), props);            
+        } else {
+            WorkflowResult<Long> updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
+            sendMessage("direct:statusUser", updated, props);            
+        }               
 
         Exchange o = pollingConsumer.receive();
 
@@ -243,39 +252,58 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
             throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
 
-        return o.getIn().getBody(WorkflowResult.class);
+        return o.getIn().getBody(Map.Entry.class);
     }
 
     @Override
-    public WorkflowResult<Long> reactivate(final Long userId) {
-        String uri = "direct:reactivatePort";
+    public Map.Entry<Long, List<PropagationStatus>> reactivate(SyncopeUser user, StatusMod statusMod) {
+        String uri = "direct:statusPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
-
-        sendMessage("direct:reactivateUser", userId);
-
+        
+        Map props = new HashMap<String, Object>();
+        props.put("user", user);
+        props.put("statusMod", statusMod);
+        
+        if (statusMod.isOnSyncope()) {
+            sendMessage("direct:reactivateUser", user.getId(),props);
+        } else {
+            WorkflowResult<Long> updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
+            sendMessage("direct:statusUser", updated, props); 
+        }
+        
         Exchange o = pollingConsumer.receive();
 
         if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
             throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
 
-        return o.getIn().getBody(WorkflowResult.class);
+        return o.getIn().getBody(Map.Entry.class);
     }
 
     @Override
-    public WorkflowResult<Long> suspend(final Long userId) {
+    public Map.Entry<Long, List<PropagationStatus>> suspend(SyncopeUser user, StatusMod statusMod) {
 
-        String uri = "direct:suspendPort";
+        String uri = "direct:statusPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
-
-        sendMessage("direct:suspendUser", userId);
+        
+        Map props = new HashMap<String, Object>();
+        props.put("user", user);
+        props.put("statusMod", statusMod);
+        
+        if (statusMod.isOnSyncope()) {
+            sendMessage("direct:suspendUser", user.getId(),props);
+        } else {
+            WorkflowResult<Long> updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
+            sendMessage("direct:statusUser", updated, props); 
+        }
+        
         Exchange o = pollingConsumer.receive();
 
         if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
             throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
 
-        return o.getIn().getBody(WorkflowResult.class);
+        return o.getIn().getBody(Map.Entry.class);
     }
 
     @Override
@@ -347,6 +375,24 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         }
 
         return o.getIn().getBody(Map.Entry.class);
+    }
+
+    @Override
+    public void innerSuspend(SyncopeUser user, boolean suspend) {
+        
+        String uri = "direct:suspendWFPort";
+        PollingConsumer pollingConsumer = getConsumer(uri);
+        
+        Map<String, Object> props = new HashMap<String, Object>();
+        props.put("suspend", suspend);
+
+        sendMessage("direct:suspendUserWF", user,props);
+        Exchange o = pollingConsumer.receive();
+
+        if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
+            throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
+        }
+
     }
 
 }

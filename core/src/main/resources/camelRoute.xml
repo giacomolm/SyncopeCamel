@@ -185,13 +185,13 @@ under the License.
             <from uri="direct:activateUser"/>
             <doTry>
                 <bean ref="uwfAdapter" method="activate(${body}, ${property.token})"/>
-                <to uri="direct:activatePort"/>
+                <to uri="direct:statusUser"/>
                 <doCatch>        
                    <exception>java.lang.RuntimeException</exception>
                    <handled>
                        <constant>false</constant>
                    </handled>
-                   <to uri="direct:activatePort"/>
+                   <to uri="direct:statusPort"/>
                 </doCatch>
             </doTry>    
         </route>
@@ -202,13 +202,13 @@ under the License.
             <from uri="direct:reactivateUser"/>
             <doTry>
                 <bean ref="uwfAdapter" method="reactivate(${body})"/>
-                <to uri="direct:reactivatePort"/>
+                <to uri="direct:statusUser"/>
                 <doCatch>        
                    <exception>java.lang.RuntimeException</exception>
                    <handled>
                        <constant>false</constant>
                    </handled>
-                   <to uri="direct:reactivatePort"/>
+                   <to uri="direct:statusPort"/>
                 </doCatch>
             </doTry>    
         </route>
@@ -219,16 +219,27 @@ under the License.
             <from uri="direct:suspendUser"/>
             <doTry>
                 <bean ref="uwfAdapter" method="suspend(${body})"/>
-                <to uri="direct:suspendPort"/>
+                <to uri="direct:statusUser"/>
                 <doCatch>        
                    <exception>java.lang.RuntimeException</exception>
                    <handled>
                        <constant>false</constant>
                    </handled>
-                   <to uri="direct:suspendPort"/>
+                   <to uri="direct:statusPort"/>
                 </doCatch>
             </doTry>  
         </route>
+        
+        <!-- 
+            STATUS PROPAGATION
+        -->
+        
+        <route id="statusUser">
+            <from uri="direct:statusUser"/>            
+              <process ref="defaultUserStatusPropagation" />
+            <to uri="direct:statusPort"/>              
+        </route>
+        
         
         <!--
             DEPROVISION USER
@@ -381,6 +392,26 @@ under the License.
               <to uri="direct:deprovisionRolePort"/>              
         </route>
         
+        <!--
+            SUSPEND USER AFTER POLICY VIOLATION
+        -->
+        
+        <route id="suspendUserWF">
+            <from uri="direct:suspendUserWF"/>
+            <doTry>
+                <bean ref="uwfAdapter" method="suspend(${body})"/>
+                <process ref="defaultUserWFSuspendPropagation"/>
+                <to uri="direct:suspendWFPort"/>
+                <doCatch>        
+                   <exception>java.lang.RuntimeException</exception>
+                   <handled>
+                       <constant>false</constant>
+                   </handled>
+                   <to uri="direct:suspendWFPort"/>
+                </doCatch>
+            </doTry>  
+        </route>
+        
     </routeContext>
     <bean id="defaultUserCreatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserCreatePropagation"/>
     <bean id="defaultUserUpdatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserUpdatePropagation"/>    
@@ -388,6 +419,8 @@ under the License.
     <bean id="defaultUserUpdateSyncPropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserUpdateInSyncPropagation"/>
     <bean id="defaultUserDeletePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserDeletePropagation"/>    
     <bean id="defaultUserDeprovisionPropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserDeprovisionPropagation"/>    
+    <bean id="defaultUserWFSuspendPropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserWFSuspendPropagation"/>
+    <bean id="defaultUserStatusPropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserStatusPropagation"/>
     <bean id="defaultRoleCreatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultRoleCreatePropagation"/>
     <bean id="defaultRoleCreateSyncPropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultRoleCreateSyncPropagation"/>
     <bean id="defaultRoleUpdatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultRoleUpdatePropagation"/>
