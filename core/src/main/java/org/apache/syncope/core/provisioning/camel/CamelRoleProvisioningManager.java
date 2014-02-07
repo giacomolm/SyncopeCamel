@@ -89,7 +89,7 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
         if(camelContext == null){
             camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());
             
-            File file = new File("src/main/resources/camelRoute.xml");
+            InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
                         
             try {
                             
