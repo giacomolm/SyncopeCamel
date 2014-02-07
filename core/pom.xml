@@ -123,6 +123,18 @@ under the License.
       <groupId>org.apache.camel</groupId>
       <artifactId>camel-spring</artifactId>
     </dependency>
+    <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.2.7</version>
+    </dependency>
+    <dependency>
+	<groupId>com.sun.xml.bind</groupId>
+	<artifactId>jaxb-impl</artifactId>
+	<version>2.2.7</version>
+    </dependency>
+            
+
 
     <dependency>
       <groupId>org.springframework</groupId>
@@ -1253,7 +1265,7 @@ under the License.
                 <deployable>
                   <location>${cargo.run.dir}</location>
                   <pingURL>http://localhost:${cargo.servlet.port}/syncope/cacheStats.jsp</pingURL>
-                  <pingTimeout>1200000</pingTimeout>
+                  <pingTimeout>1800000</pingTimeout>
                   <properties>
                     <context>syncope</context>
                   </properties>
@@ -1388,7 +1400,7 @@ under the License.
                   <!-- build-tools are correctly deployed only when call to this JSP returns 200, e.g.
                   when connectors are reloaded by the core -->
                   <pingURL>http://localhost:${cargo.servlet.port}/syncope-build-tools/conninstance-reload.jsp</pingURL>
-                  <pingTimeout>1200000</pingTimeout>
+                  <pingTimeout>1800000</pingTimeout>
                   <properties>
                     <context>syncope-build-tools</context>
                   </properties>
@@ -1396,7 +1408,7 @@ under the License.
                 <deployable>
                   <location>${cargo.run.dir}</location>
                   <pingURL>http://localhost:${cargo.servlet.port}/syncope/cacheStats.jsp</pingURL>
-                  <pingTimeout>1200000</pingTimeout>
+                  <pingTimeout>1800000</pingTimeout>
                   <properties>
                     <context>syncope</context>
                   </properties>
