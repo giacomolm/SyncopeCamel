@@ -19,6 +19,7 @@
 
 package org.apache.syncope.core.provisioning.camel;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +29,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.PollingConsumer;
@@ -35,7 +41,10 @@ import org.apache.camel.ProducerTemplate;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.impl.DefaultExchange;
 import org.apache.camel.impl.DefaultMessage;
+import org.apache.camel.model.Constants;
+import org.apache.camel.model.RouteDefinition;
 import org.apache.camel.model.RoutesDefinition;
+import org.apache.camel.spring.SpringCamelContext;
 import org.apache.syncope.common.mod.RoleMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.RoleTO;
@@ -45,6 +54,9 @@ import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class CamelRoleProvisioningManager implements RoleProvisioningManager{
 
@@ -72,8 +84,39 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
     }
 
     public DefaultCamelContext getContext() {
-        ApplicationContext context = ApplicationContextProvider.getApplicationContext();
-        return context.getBean("camel-context", DefaultCamelContext.class);
+        /*ApplicationContext context = ApplicationContextProvider.getApplicationContext();
+        return context.getBean("camel-context", DefaultCamelContext.class);*/        
+        if(camelContext == null){
+            camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());
+            
+            File file = new File("src/main/resources/camelRoute.xml");
+                        
+            try {
+                            
+                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                    JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);                    
+                    Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+
+                    Document doc = dBuilder.parse(file);                   
+                    doc.getDocumentElement().normalize();                    
+                    Node routeEl;
+
+                    ArrayList acl = new ArrayList();
+                    List rds = new ArrayList(); 
+                    NodeList listOfRoutes = doc.getElementsByTagName("route");
+                    for(int s=0; s<listOfRoutes.getLength(); s++){                                                                    
+                        routeEl = doc.getElementsByTagName("route").item(s);
+                        JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
+                        //adding route definition to list                        
+                        rds.add(obj.getValue());                                
+                    }             
+                    camelContext.addRouteDefinitions(rds);                
+                    camelContext.start();
+            } catch (Exception ex) {
+                LOG.info("Error during loading camel context {}", ex);
+            }
+        }
+        return camelContext;  
     }
 
     public void changeRoute(String routePath) {
