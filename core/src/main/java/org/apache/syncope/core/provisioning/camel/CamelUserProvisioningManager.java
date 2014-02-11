@@ -54,7 +54,9 @@ import org.apache.syncope.common.mod.StatusMod;
 import org.apache.syncope.common.mod.UserMod;
 import org.apache.syncope.common.to.PropagationStatus;
 import org.apache.syncope.common.to.UserTO;
+import org.apache.syncope.core.persistence.beans.CamelRoute;
 import org.apache.syncope.core.persistence.beans.user.SyncopeUser;
+import org.apache.syncope.core.persistence.dao.RouteDAO;
 import org.apache.syncope.core.propagation.PropagationByResource;
 import org.apache.syncope.core.provisioning.UserProvisioningManager;
 import org.apache.syncope.core.sync.SyncResult;
@@ -62,6 +64,7 @@ import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -79,6 +82,9 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
     protected Map<String, PollingConsumer> consumerMap;
 
     protected List<String> knownUri;
+            
+    @Autowired
+    protected RouteDAO routeDao;       
 
     public CamelUserProvisioningManager() throws Exception {
         knownUri = new ArrayList<String>();
@@ -98,7 +104,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         return context.getBean("camel-context", DefaultCamelContext.class);*/        
         if(camelContext == null){
             camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());            
-            
+            List<CamelRoute> crl = routeDao.findAll();
             InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
                         
             try {
