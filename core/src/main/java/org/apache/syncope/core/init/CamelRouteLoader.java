@@ -57,17 +57,19 @@ public class CamelRouteLoader {
     public void load(){
         
         
-        //manca la parte del findALL se le rotte sono gia presenti in memoria
-        LOG.info("AAAAAAA {} ", routeDAO.getEm().find(CamelRoute.class, 1));
+        //manca la parte del findALL se le rotte sono gia presenti in memoria        
         if( routeDAO.getEm().find(CamelRoute.class, 1) != null){
             
         }
         else{
-            URL url = getClass().getResource("/camelRoute.xml");
-
-            File file = new File(url.getPath());
 
             try{
+                URL url = getClass().getResource("/camelRoute.xml");
+
+                File file = new File(url.getPath());
+                File rfile = new File("/camelRoute_readed.xml");
+                file.renameTo(rfile);
+                
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                 Document doc = dBuilder.parse(file);
                 doc.getDocumentElement().normalize();
