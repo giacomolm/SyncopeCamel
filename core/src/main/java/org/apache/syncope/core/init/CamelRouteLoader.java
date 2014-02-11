@@ -62,14 +62,14 @@ public class CamelRouteLoader {
             
         }
         else{
+            URL url = getClass().getResource("/camelRoute.xml");
+            
+            routeDAO.getEm().createQuery("DELETE FROM "+CamelRoute.class.getSimpleName()).executeUpdate();
+            //entityManager.createNativeQuery("ALTER TABLE student AUTO_INCREMENT = 1").executeUpdate();
+
+            File file = new File(url.getPath());
 
             try{
-                URL url = getClass().getResource("/camelRoute.xml");
-
-                File file = new File(url.getPath());
-                File rfile = new File("/camelRoute_readed.xml");
-                file.renameTo(rfile);
-                
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                 Document doc = dBuilder.parse(file);
                 doc.getDocumentElement().normalize();
@@ -80,7 +80,7 @@ public class CamelRouteLoader {
                     Node routeEl = listOfRoutes.item(s);
                     //crate an instance of CamelRoute Entity
                     CamelRoute route = new CamelRoute();              
-		    LOG.info("Questo è id {}",id++);
+                    LOG.info("Questo è id {}",id++);
                     route.setName(((Element)routeEl).getAttribute("id"));        
                     route.setRouteContent(nodeToString(listOfRoutes.item(s)));
                     routeDAO.save(route);
