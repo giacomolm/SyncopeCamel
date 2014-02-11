@@ -61,20 +61,18 @@ public class RouteDAOImpl extends AbstractDAOImpl implements RouteDAO{
     @Transactional(propagation = Propagation.REQUIRED)
     public CamelRoute save(CamelRoute route) throws InvalidEntityException {
 
-   	//entityManager.getTransaction().begin();
-        if(findAll().isEmpty()){
-            try {
-              try {
-                entityManager.persist(route);
-              } catch (Exception e) {
-                entityManager.merge(route);
-              }
-              //entityManager.getTransaction().commit();
-            } catch (Exception e) {
-              //System.out.print("Error: "+e.getMessage()); // for debug purposes
-              //entityManager.getTransaction().rollback();
-            }
-        }
+   	//entityManager.getTransaction().begin();        
+        try {
+          try {
+            entityManager.persist(route);
+          } catch (Exception e) {
+            entityManager.merge(route);
+          }
+          //entityManager.getTransaction().commit();
+        } catch (Exception e) {
+          //System.out.print("Error: "+e.getMessage()); // for debug purposes
+          //entityManager.getTransaction().rollback();
+        }      
 	return null;
     }	
 
