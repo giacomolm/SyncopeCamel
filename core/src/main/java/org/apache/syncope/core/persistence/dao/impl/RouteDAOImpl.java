@@ -63,15 +63,15 @@ public class RouteDAOImpl extends AbstractDAOImpl implements RouteDAO{
 
    	//entityManager.getTransaction().begin();        
         try {
-          try {
+          /*try {
             entityManager.persist(route);
-          } catch (Exception e) {
+          } catch (Exception e) {*/
             entityManager.merge(route);
-          }
+          //}
           //entityManager.getTransaction().commit();
         } catch (Exception e) {
           //System.out.print("Error: "+e.getMessage()); // for debug purposes
-          //entityManager.getTransaction().rollback();
+          entityManager.getTransaction().rollback();
         }      
 	return null;
     }	
