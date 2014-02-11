@@ -20,6 +20,7 @@
 package org.apache.syncope.core.persistence.dao.impl;
 
 import java.util.List;
+import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 import org.apache.syncope.core.persistence.beans.CamelRoute;
@@ -60,20 +61,8 @@ public class RouteDAOImpl extends AbstractDAOImpl implements RouteDAO{
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public CamelRoute save(CamelRoute route) throws InvalidEntityException {
-
-   	//entityManager.getTransaction().begin();        
-        try {
-          /*try {
-            entityManager.persist(route);
-          } catch (Exception e) {*/
-            entityManager.merge(route);
-          //}
-          //entityManager.getTransaction().commit();
-        } catch (Exception e) {
-          //System.out.print("Error: "+e.getMessage()); // for debug purposes
-          entityManager.getTransaction().rollback();
-        }      
-	return null;
+                     
+	return entityManager.merge(route);
     }	
 
     @Override
@@ -82,6 +71,10 @@ public class RouteDAOImpl extends AbstractDAOImpl implements RouteDAO{
         route = find(id);
         if(route!=null) entityManager.remove(route);
 
+    }
+    
+    public EntityManager getEm(){
+        return entityManager;
     }
     
 }

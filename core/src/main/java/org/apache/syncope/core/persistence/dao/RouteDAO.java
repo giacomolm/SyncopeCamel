@@ -20,6 +20,7 @@
 package org.apache.syncope.core.persistence.dao;
 
 import java.util.List;
+import javax.persistence.EntityManager;
 import org.apache.syncope.core.persistence.validation.entity.InvalidEntityException;
 import org.apache.syncope.core.persistence.beans.CamelRoute;
 
@@ -32,4 +33,6 @@ public interface RouteDAO {
     CamelRoute save(CamelRoute route) throws InvalidEntityException;
 
     void delete(Long id);    
+    
+    public EntityManager getEm();
 }
