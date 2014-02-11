@@ -36,6 +36,7 @@ import org.apache.syncope.core.persistence.dao.RouteDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
@@ -44,6 +45,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 @Component
+@Scope(value = "singleton")
 public class CamelRouteLoader {
     
     private static final Logger LOG = LoggerFactory.getLogger(CamelRouteLoader.class);
@@ -58,7 +60,7 @@ public class CamelRouteLoader {
         
         
         //manca la parte del findALL se le rotte sono gia presenti in memoria
-        if( routeDAO.findAll().size() > 0){
+        if( id > 0){
             
         }
         else{
