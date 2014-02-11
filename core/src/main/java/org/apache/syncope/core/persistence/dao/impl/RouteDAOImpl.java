@@ -27,6 +27,8 @@ import org.apache.syncope.core.persistence.dao.RouteDAO;
 import static org.apache.syncope.core.persistence.dao.impl.AbstractDAOImpl.LOG;
 import org.apache.syncope.core.persistence.validation.entity.InvalidEntityException;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class RouteDAOImpl extends AbstractDAOImpl implements RouteDAO{
@@ -54,22 +56,25 @@ public class RouteDAOImpl extends AbstractDAOImpl implements RouteDAO{
         TypedQuery<CamelRoute> query = entityManager.createQuery("SELECT e FROM "+ CamelRoute.class.getSimpleName() +" e",CamelRoute.class);
         return query.getResultList();
     }
-
+    
     @Override
+    @Transactional(propagation = Propagation.REQUIRED)
     public CamelRoute save(CamelRoute route) throws InvalidEntityException {
 
-   	entityManager.getTransaction().begin();
-   	try {
-       	  try {
-            entityManager.persist(route);
-       	  } catch (Exception e) {
-            entityManager.merge(route);
-       	  }
-       	  entityManager.getTransaction().commit();
-       	} catch (Exception e) {
-          //System.out.print("Error: "+e.getMessage()); // for debug purposes
-          entityManager.getTransaction().rollback();
-   	}
+   	//entityManager.getTransaction().begin();
+        if(findAll().isEmpty()){
+            try {
+              try {
+                entityManager.persist(route);
+              } catch (Exception e) {
+                entityManager.merge(route);
+              }
+              //entityManager.getTransaction().commit();
+            } catch (Exception e) {
+              //System.out.print("Error: "+e.getMessage()); // for debug purposes
+              //entityManager.getTransaction().rollback();
+            }
+        }
 	return null;
     }	
 

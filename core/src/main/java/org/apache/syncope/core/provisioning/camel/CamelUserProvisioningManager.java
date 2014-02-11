@@ -112,16 +112,19 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
                     DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                     JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);                    
                     Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+                    List rds = new ArrayList();
+                    
+                    for(int s=0; s<crl.size(); s++){ 
+                        
+                        InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
+                        Document doc = dBuilder.parse(is);                   
+                        doc.getDocumentElement().normalize();                    
+                        Node routeEl;
 
-                    Document doc = dBuilder.parse(file);                   
-                    doc.getDocumentElement().normalize();                    
-                    Node routeEl;
-
-                    ArrayList acl = new ArrayList();
-                    List rds = new ArrayList(); 
-                    NodeList listOfRoutes = doc.getElementsByTagName("route");
-                    for(int s=0; s<listOfRoutes.getLength(); s++){                                                                    
-                        routeEl = doc.getElementsByTagName("route").item(s);
+                        //ArrayList acl = new ArrayList();                         
+                        //NodeList listOfRoutes = doc.getElementsByTagName("route");
+                                                                                       
+                        routeEl = doc.getElementsByTagName("route").item(0);
                         JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
                         //adding route definition to list                        
                         rds.add(obj.getValue());                                
