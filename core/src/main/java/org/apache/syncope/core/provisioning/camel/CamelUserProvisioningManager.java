@@ -103,7 +103,9 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         /*ApplicationContext context = ApplicationContextProvider.getApplicationContext();
         return context.getBean("camel-context", DefaultCamelContext.class);*/        
         if(camelContext == null){
-            camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());            
+            //camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());            
+            ApplicationContext context = ApplicationContextProvider.getApplicationContext();
+            camelContext = context.getBean("camel-context", DefaultCamelContext.class);
             List<CamelRoute> crl = routeDao.findAll();
             InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
                         
