@@ -79,7 +79,7 @@ public class CamelRouteLoader {
             File file = new File(url.getPath());
 
             try{
-                routeDAO.getEm().createQuery("DELETE FROM "+CamelRoute.class.getSimpleName()).executeUpdate();
+                
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                 Document doc = dBuilder.parse(file);
                 doc.getDocumentElement().normalize();
@@ -93,7 +93,7 @@ public class CamelRouteLoader {
                     LOG.info("Questo è id {}",id++);
                     route.setName(((Element)routeEl).getAttribute("id"));        
                     route.setRouteContent(nodeToString(listOfRoutes.item(s)));
-                    RouteManager.addElement(route);
+                    
                     routeDAO.save(route);
                     LOG.error("Route Registration Successed");
                 }
