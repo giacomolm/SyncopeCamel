@@ -19,6 +19,7 @@
 
 package org.apache.syncope.core.provisioning.camel;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -58,7 +59,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -107,22 +107,23 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
                     Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
                     List rds = new ArrayList();
                     
-                    Document doc = dBuilder.parse(file);
-                    doc.getDocumentElement().normalize();
+                    for(int s=0; s<crl.size(); s++){ 
+                        
+                        InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
+                        Document doc = dBuilder.parse(is);                   
+                        doc.getDocumentElement().normalize();                    
+                        Node routeEl;
 
-                    NodeList listOfRoutes = doc.getElementsByTagName("route");
-                    for(int s=0; s<listOfRoutes.getLength(); s++){
-                        //getting the route node element
-                        Node routeEl = listOfRoutes.item(s);
-                        //crate an instance of CamelRoute Entity
-                        CamelRoute route = new CamelRoute();                                 
-                        route.setName(((Element)routeEl).getAttribute("id"));        
+                        //ArrayList acl = new ArrayList();                         
+                        //NodeList listOfRoutes = doc.getElementsByTagName("route");
+                                                                                       
+                        routeEl = doc.getElementsByTagName("route").item(0);
                         JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
                         //adding route definition to list                        
-                        rds.add(obj.getValue()); 
-                    }                         
-                   
-                    camelContext.addRouteDefinitions(rds);              
+                        rds.add(obj.getValue());                                
+                    }
+                    
+                    camelContext.addRouteDefinitions(rds);                    
                     camelContext.start();
             } catch (Exception ex) {
                 LOG.info("Error during loading camel context {}", ex);

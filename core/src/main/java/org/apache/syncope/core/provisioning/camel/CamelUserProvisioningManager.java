@@ -107,8 +107,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
             camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());            
             
             List<CamelRoute> crl = routeDao.findAll();
-            InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
-                                   
+            /*InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
             try {
                             
                     DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -129,6 +128,35 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
                         JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
                         //adding route definition to list                        
                         rds.add(obj.getValue()); 
+                    }                         
+                   
+                    camelContext.addRouteDefinitions(rds);              
+                    camelContext.start();
+            } catch (Exception ex) {
+                LOG.info("Error during loading camel context {}", ex);
+            }*/
+                        
+            try {
+                            
+                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                    JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);                    
+                    Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+                    List rds = new ArrayList();
+                    
+                    for(int s=0; s<crl.size(); s++){ 
+                        
+                        InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
+                        Document doc = dBuilder.parse(is);                   
+                        doc.getDocumentElement().normalize();                    
+                        Node routeEl;
+
+                        //ArrayList acl = new ArrayList();                         
+                        //NodeList listOfRoutes = doc.getElementsByTagName("route");
+                                                                                       
+                        routeEl = doc.getElementsByTagName("route").item(0);
+                        JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
+                        //adding route definition to list                        
+                        rds.add(obj.getValue());                                
                     }
                     
                     camelContext.addRouteDefinitions(rds);                    
