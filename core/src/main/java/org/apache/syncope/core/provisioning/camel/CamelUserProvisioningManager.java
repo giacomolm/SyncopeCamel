@@ -67,6 +67,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -107,7 +108,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
             
             List<CamelRoute> crl = routeDao.findAll();
             InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
-                        
+                                   
             try {
                             
                     DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -115,20 +116,19 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
                     Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
                     List rds = new ArrayList();
                     
-                    for(int s=0; s<crl.size(); s++){ 
-                        
-                        //InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
-                        Document doc = dBuilder.parse(file);                   
-                        doc.getDocumentElement().normalize();                    
-                        Node routeEl;
+                    Document doc = dBuilder.parse(file);
+                    doc.getDocumentElement().normalize();
 
-                        //ArrayList acl = new ArrayList();                         
-                        //NodeList listOfRoutes = doc.getElementsByTagName("route");
-                                                                                       
-                        routeEl = doc.getElementsByTagName("route").item(0);
+                    NodeList listOfRoutes = doc.getElementsByTagName("route");
+                    for(int s=0; s<listOfRoutes.getLength(); s++){
+                        //getting the route node element
+                        Node routeEl = listOfRoutes.item(s);
+                        //crate an instance of CamelRoute Entity
+                        CamelRoute route = new CamelRoute();                                 
+                        route.setName(((Element)routeEl).getAttribute("id"));        
                         JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
                         //adding route definition to list                        
-                        rds.add(obj.getValue());                                
+                        rds.add(obj.getValue()); 
                     }
                     
                     camelContext.addRouteDefinitions(rds);                    
