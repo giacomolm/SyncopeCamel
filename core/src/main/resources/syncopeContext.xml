@@ -130,7 +130,6 @@ under the License.
   <camel:camelContext id="camel-context" autoStartup="true">
       <camel:routeContextRef ref="defaultRoutes"/>
   </camel:camelContext>-->
-    <camel:camelContext id="camel-context"/>
     
     <bean id="defaultUserCreatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserCreatePropagation"/>
     <bean id="defaultUserUpdatePropagation" class="org.apache.syncope.core.provisioning.camel.processors.DefaultUserUpdatePropagation"/>    

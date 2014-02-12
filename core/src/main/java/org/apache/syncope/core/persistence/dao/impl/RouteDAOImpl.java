@@ -34,8 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class RouteDAOImpl extends AbstractDAOImpl implements RouteDAO{
 
-    public static int i = 0;
-
     @Override
     public CamelRoute find(Long id) {
         TypedQuery<CamelRoute> query = entityManager.createQuery(

@@ -22,7 +22,6 @@ package org.apache.syncope.core.init;
 import java.io.File;
 import java.io.StringWriter;
 import java.net.URL;
-import javax.annotation.Resource;
 import javax.sql.rowset.serial.SerialClob;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -35,8 +34,6 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.syncope.core.persistence.beans.CamelRoute;
 import org.apache.syncope.core.persistence.dao.RouteDAO;
-import org.apache.syncope.core.provisioning.UserProvisioningManager;
-import org.apache.syncope.core.provisioning.camel.CamelUserProvisioningManager;
 import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.util.RouteManager;
 import org.slf4j.Logger;
@@ -57,21 +54,11 @@ public class CamelRouteLoader {
     
     @Autowired
     private RouteDAO routeDAO;
-    
-    @Autowired
-    @Resource(name = "defaultUserProvisioningManager")
-    protected UserProvisioningManager provisioningManager;
-   
-    private static int id=0;
+ 
  
     @Transactional
     public void load(){
         
-        try{            
-            LOG.info("Ecco il contesto {}", ((CamelUserProvisioningManager)provisioningManager).getContext().getRoutes());            
-        }catch(Exception e){
-            LOG.info("fallimento nel contesto {}", e);
-        }
         
         //manca la parte del findALL se le rotte sono gia presenti in memoria        
         if(routeDAO.findAll().size()>0){
@@ -79,8 +66,7 @@ public class CamelRouteLoader {
         }
         else{
             URL url = getClass().getResource("/camelRoute.xml");
-                        
-            //entityManager.createNativeQuery("ALTER TABLE student AUTO_INCREMENT = 1").executeUpdate();
+                                   
 
             File file = new File(url.getPath());
 
@@ -95,8 +81,7 @@ public class CamelRouteLoader {
                     //getting the route node element
                     Node routeEl = listOfRoutes.item(s);
                     //crate an instance of CamelRoute Entity
-                    CamelRoute route = new CamelRoute();              
-                    LOG.info("Questo è id {}",id++);
+                    CamelRoute route = new CamelRoute();                                 
                     route.setName(((Element)routeEl).getAttribute("id"));        
                     route.setRouteContent(nodeToString(listOfRoutes.item(s)));
                     

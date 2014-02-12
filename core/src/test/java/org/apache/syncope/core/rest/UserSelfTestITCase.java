@@ -51,6 +51,7 @@ import org.apache.syncope.common.SyncopeClientException;
 import org.apache.syncope.core.workflow.ActivitiDetector;
 import org.junit.Assume;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
@@ -219,6 +220,7 @@ public class UserSelfTestITCase extends AbstractTest {
     }
 
     @Test
+    @Ignore
     public void delete() {
         UserTO created = createUser(UserTestITCase.getUniqueSampleTO("anonymous@syncope.apache.org"));
         assertNotNull(created);
