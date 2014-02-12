@@ -120,6 +120,7 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
                         //adding route definition to list                        
                         rds.add(obj.getValue());                                
                     }             
+                    LOG.info("Attenzione {}",camelContext.getRoutes().size());
                     if(camelContext.getRoutes().size()==0) camelContext.addRouteDefinitions(rds);                
                     //camelContext.start();
             } catch (Exception ex) {

@@ -130,7 +130,8 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
                         JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
                         //adding route definition to list                        
                         rds.add(obj.getValue());                                
-                    }             
+                    }
+                    LOG.info("Attenzione {}",camelContext.getRoutes().size());
                     if(camelContext.getRoutes().size()==0) camelContext.addRouteDefinitions(rds);                
                     //camelContext.start();
             } catch (Exception ex) {
