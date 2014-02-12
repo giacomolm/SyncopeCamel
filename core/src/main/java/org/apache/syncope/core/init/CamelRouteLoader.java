@@ -60,8 +60,12 @@ public class CamelRouteLoader {
     @Transactional
     public void load(){
         
-        ApplicationContext context = ApplicationContextProvider.getApplicationContext();
-        LOG.info("Ecco il contesto {}", context.getBean("camel-1", DefaultCamelContext.class));
+        try{
+            ApplicationContext context = ApplicationContextProvider.getApplicationContext();
+            LOG.info("Ecco il contesto {}", context.getBean("camel-1", DefaultCamelContext.class));            
+        }catch(Exception e){
+            LOG.info("fallimento nel contesto {}", e);
+        }
         
         //manca la parte del findALL se le rotte sono gia presenti in memoria        
         if( RouteManager.getRoutes().size()>0){
