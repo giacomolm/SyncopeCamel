@@ -21,7 +21,6 @@ package org.apache.syncope.core.services;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.syncope.common.services.RouteService;
