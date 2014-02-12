@@ -84,8 +84,8 @@ public class CamelRouteLoader {
                     CamelRoute route = new CamelRoute();                                 
                     route.setName(((Element)routeEl).getAttribute("id"));        
                     route.setRouteContent(nodeToString(listOfRoutes.item(s)));
-                    
-                    //routeDAO.save(route);
+                    //This is the exception cause
+                    routeDAO.save(route);
                     LOG.error("Route Registration Successed");
                 }
             } catch (Exception e) {
