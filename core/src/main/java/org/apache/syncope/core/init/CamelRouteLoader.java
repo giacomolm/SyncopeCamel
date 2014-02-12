@@ -68,7 +68,7 @@ public class CamelRouteLoader {
         }
         
         //manca la parte del findALL se le rotte sono gia presenti in memoria        
-        if( RouteManager.getRoutes().size()>0){
+        if(routeDAO.findAll().size()>0){
             
         }
         else{
