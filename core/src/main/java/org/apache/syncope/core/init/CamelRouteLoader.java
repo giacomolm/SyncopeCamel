@@ -33,6 +33,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.apache.syncope.core.persistence.beans.CamelRoute;
 import org.apache.syncope.core.persistence.dao.RouteDAO;
+import org.apache.syncope.core.util.RouteManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,18 +59,18 @@ public class CamelRouteLoader {
         
         
         //manca la parte del findALL se le rotte sono gia presenti in memoria        
-        if( routeDAO.getEm().find(CamelRoute.class, 1) != null){
+        if( RouteManager.getRoutes().size()>0){
             
         }
         else{
             URL url = getClass().getResource("/camelRoute.xml");
-            
-            routeDAO.getEm().createQuery("DELETE FROM "+CamelRoute.class.getSimpleName()).executeUpdate();
+                        
             //entityManager.createNativeQuery("ALTER TABLE student AUTO_INCREMENT = 1").executeUpdate();
 
             File file = new File(url.getPath());
 
             try{
+                routeDAO.getEm().createQuery("DELETE FROM "+CamelRoute.class.getSimpleName()).executeUpdate();
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                 Document doc = dBuilder.parse(file);
                 doc.getDocumentElement().normalize();
@@ -83,6 +84,7 @@ public class CamelRouteLoader {
                     LOG.info("Questo è id {}",id++);
                     route.setName(((Element)routeEl).getAttribute("id"));        
                     route.setRouteContent(nodeToString(listOfRoutes.item(s)));
+                    RouteManager.addElement(route);
                     routeDAO.save(route);
                     LOG.error("Route Registration Successed");
                 }
