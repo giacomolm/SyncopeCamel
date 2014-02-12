@@ -33,6 +33,7 @@ public class RouteManager {
     }
     
     public static List<CamelRoute> getRoutes(){
+        if(routelist == null) routelist= new ArrayList<CamelRoute>();
         return routelist;
     }
 }
