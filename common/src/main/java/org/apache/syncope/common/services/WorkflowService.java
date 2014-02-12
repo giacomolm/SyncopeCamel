@@ -86,4 +86,14 @@ public interface WorkflowService extends JAXRSService {
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     void importDefinition(@PathParam("kind") AttributableType kind, String definition);
+    
+    @GET
+    @Path("{id}")
+    @Produces({ MediaType.APPLICATION_XML })
+    Response getRoute(@PathParam("id") Long id);
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML })
+    Response getRoutes();
+    
 }

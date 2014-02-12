@@ -106,7 +106,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         if(camelContext == null){
             camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());            
             
-            List<CamelRoute> crl = routeDao.findAll();
+            List<CamelRoute> crl = getRoutes();
             /*InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
             try {
                             
@@ -168,6 +168,10 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         return camelContext;            
     }
 
+    public List<CamelRoute> getRoutes(){
+        return routeDao.findAll();
+    }
+    
     public void changeRoute(String routePath) {
         try {
             camelContext.removeRouteDefinitions(routes.getRoutes());

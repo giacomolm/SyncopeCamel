@@ -18,11 +18,16 @@
  */
 package org.apache.syncope.core.rest.controller;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +45,7 @@ import org.apache.syncope.common.types.AttributableType;
 import org.apache.syncope.common.types.ClientExceptionType;
 import org.apache.syncope.common.SyncopeClientException;
 import org.apache.syncope.common.to.PropagationStatus;
+import org.apache.syncope.core.persistence.beans.CamelRoute;
 import org.apache.syncope.core.provisioning.UserProvisioningManager;
 import org.apache.syncope.core.persistence.beans.PropagationTask;
 import org.apache.syncope.core.persistence.beans.role.SyncopeRole;
@@ -53,6 +59,7 @@ import org.apache.syncope.core.propagation.PropagationException;
 import org.apache.syncope.core.propagation.PropagationReporter;
 import org.apache.syncope.core.propagation.PropagationTaskExecutor;
 import org.apache.syncope.core.propagation.impl.PropagationManager;
+import org.apache.syncope.core.provisioning.camel.CamelUserProvisioningManager;
 import org.apache.syncope.core.rest.data.AttributableTransformer;
 import org.apache.syncope.core.rest.data.UserDataBinder;
 import org.apache.syncope.core.util.ApplicationContextProvider;
@@ -482,5 +489,19 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
         }
 
         throw new UnresolvedReferenceException();
+    }
+    
+    public PrintStream getDefinition() throws FileNotFoundException{
+        String result = "";
+        if(provisioningManager instanceof CamelUserProvisioningManager){
+            List l = ((CamelUserProvisioningManager)provisioningManager).getRoutes();
+            Iterator<CamelRoute> it = l.iterator();
+            
+            while(it.hasNext()){
+                result += it.next().getRouteContent();
+            }                        
+        }
+        return new PrintStream(result);
+            
     }
 }

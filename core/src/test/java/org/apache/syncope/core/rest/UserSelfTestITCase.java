@@ -56,7 +56,6 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.JVM)
-@Ignore
 public class UserSelfTestITCase extends AbstractTest {
 
     @Test
