@@ -106,7 +106,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
             camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());            
             
             List<CamelRoute> crl = routeDao.findAll();
-            //InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
+            InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
                         
             try {
                             
@@ -117,8 +117,8 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
                     
                     for(int s=0; s<crl.size(); s++){ 
                         
-                        InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
-                        Document doc = dBuilder.parse(is);                   
+                        //InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
+                        Document doc = dBuilder.parse(file);                   
                         doc.getDocumentElement().normalize();                    
                         Node routeEl;
 

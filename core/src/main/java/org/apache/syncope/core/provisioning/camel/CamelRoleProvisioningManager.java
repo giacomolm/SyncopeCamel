@@ -104,6 +104,8 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
                     DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                     JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);                    
                     Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+                    
+                    //InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
 
                     Document doc = dBuilder.parse(file);                   
                     doc.getDocumentElement().normalize();                    
