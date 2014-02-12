@@ -125,7 +125,7 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
                         camelContext.addRouteDefinitions(rds);
                         context.getBean("camel-context", DefaultCamelContext.class).addRouteDefinitions(rds);
                     }                 
-                    //camelContext.start();
+                    camelContext.start();
             } catch (Exception ex) {
                 LOG.info("Error during loading camel context {}", ex);
             }
