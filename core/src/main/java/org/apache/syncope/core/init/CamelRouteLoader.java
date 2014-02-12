@@ -22,6 +22,7 @@ package org.apache.syncope.core.init;
 import java.io.File;
 import java.io.StringWriter;
 import java.net.URL;
+import javax.annotation.Resource;
 import javax.sql.rowset.serial.SerialClob;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -34,6 +35,8 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.syncope.core.persistence.beans.CamelRoute;
 import org.apache.syncope.core.persistence.dao.RouteDAO;
+import org.apache.syncope.core.provisioning.UserProvisioningManager;
+import org.apache.syncope.core.provisioning.camel.CamelUserProvisioningManager;
 import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.util.RouteManager;
 import org.slf4j.Logger;
@@ -54,15 +57,18 @@ public class CamelRouteLoader {
     
     @Autowired
     private RouteDAO routeDAO;
+    
+    @Autowired
+    @Resource(name = "defaultUserProvisioningManager")
+    protected UserProvisioningManager provisioningManager;
    
     private static int id=0;
  
     @Transactional
     public void load(){
         
-        try{
-            ApplicationContext context = ApplicationContextProvider.getApplicationContext();
-            LOG.info("Ecco il contesto {}", context.getBean("camel-context", DefaultCamelContext.class).getRoutes().size());            
+        try{            
+            LOG.info("Ecco il contesto {}", ((CamelUserProvisioningManager)provisioningManager).getContext().getRoutes());            
         }catch(Exception e){
             LOG.info("fallimento nel contesto {}", e);
         }
