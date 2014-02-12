@@ -31,12 +31,15 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.syncope.core.persistence.beans.CamelRoute;
 import org.apache.syncope.core.persistence.dao.RouteDAO;
+import org.apache.syncope.core.util.ApplicationContextProvider;
 import org.apache.syncope.core.util.RouteManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
@@ -57,6 +60,8 @@ public class CamelRouteLoader {
     @Transactional
     public void load(){
         
+        ApplicationContext context = ApplicationContextProvider.getApplicationContext();
+        LOG.info("Ecco il contesto {}", context.getBean("camel-1", DefaultCamelContext.class));
         
         //manca la parte del findALL se le rotte sono gia presenti in memoria        
         if( RouteManager.getRoutes().size()>0){
