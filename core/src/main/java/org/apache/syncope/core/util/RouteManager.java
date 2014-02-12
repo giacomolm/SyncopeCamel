@@ -25,9 +25,10 @@ import org.apache.syncope.core.persistence.beans.CamelRoute;
 
 
 public class RouteManager {
-    private static List<CamelRoute> routelist = new ArrayList<CamelRoute>();
+    private static List<CamelRoute> routelist;
     
     public static void addElement(CamelRoute route){
+        if(routelist == null) routelist= new ArrayList<CamelRoute>();
         routelist.add(route);
     }
     
