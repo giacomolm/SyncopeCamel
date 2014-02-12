@@ -56,6 +56,7 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.JVM)
+@Ignore
 public class UserSelfTestITCase extends AbstractTest {
 
     @Test
@@ -220,7 +221,6 @@ public class UserSelfTestITCase extends AbstractTest {
     }
 
     @Test
-    @Ignore
     public void delete() {
         UserTO created = createUser(UserTestITCase.getUniqueSampleTO("anonymous@syncope.apache.org"));
         assertNotNull(created);
