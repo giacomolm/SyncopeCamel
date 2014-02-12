@@ -62,7 +62,7 @@ public class CamelRouteLoader {
         
         try{
             ApplicationContext context = ApplicationContextProvider.getApplicationContext();
-            LOG.info("Ecco il contestooo size {}", context.getBean("camel-context", DefaultCamelContext.class).getRoutes().size());            
+            LOG.info("Ecco il contesto {}", context.getBean("camel-context", DefaultCamelContext.class));            
         }catch(Exception e){
             LOG.info("fallimento nel contesto {}", e);
         }
