@@ -93,7 +93,10 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
         /*ApplicationContext context = ApplicationContextProvider.getApplicationContext();
         return context.getBean("camel-context", DefaultCamelContext.class);*/        
         if(camelContext == null){
-            camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());
+            //camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());
+            ApplicationContext context = ApplicationContextProvider.getApplicationContext();
+            camelContext = context.getBean("camel-context", DefaultCamelContext.class);
+            
             List<CamelRoute> crl = routeDao.findAll();
             
             InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
@@ -117,8 +120,8 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
                         //adding route definition to list                        
                         rds.add(obj.getValue());                                
                     }             
-                    camelContext.addRouteDefinitions(rds);                
-                    camelContext.start();
+                    if(camelContext.getRoutes().size()==0) camelContext.addRouteDefinitions(rds);                
+                    //camelContext.start();
             } catch (Exception ex) {
                 LOG.info("Error during loading camel context {}", ex);
             }

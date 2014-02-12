@@ -131,8 +131,8 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
                         //adding route definition to list                        
                         rds.add(obj.getValue());                                
                     }             
-                    camelContext.addRouteDefinitions(rds);                
-                    camelContext.start();
+                    if(camelContext.getRoutes().size()==0) camelContext.addRouteDefinitions(rds);                
+                    //camelContext.start();
             } catch (Exception ex) {
                 LOG.info("Error during loading camel context {}", ex);
             }
