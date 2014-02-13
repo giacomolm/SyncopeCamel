@@ -101,7 +101,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
             camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());
 
             List<CamelRoute> crl = getRoutes();
-            InputStream file = getClass().getResourceAsStream("/userRoute.xml");
+            InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
             try {
                             
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
