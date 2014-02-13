@@ -72,7 +72,7 @@ public class CamelRouteLoader {
             URL url = getClass().getResource("/camelRoute.xml");                                   
 
             File file = new File(url.getPath());
-            String query= "INSERT INTO CamelRoute(ID, NAME, CONTENT) VALUES (?, ?, ?)";
+            String query= "INSERT INTO CamelRoute(ID, NAME, ROUTECONTENT) VALUES (?, ?, ?)";
             try{
                 
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
