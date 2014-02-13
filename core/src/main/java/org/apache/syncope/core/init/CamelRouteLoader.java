@@ -130,7 +130,7 @@ public class CamelRouteLoader {
                     q.setParameter("ID", s+1);
                     q.setParameter("NAME", ((Element)routeEl).getAttribute("id"));
                     q.setParameter("ROUTECONTENT", nodeToString(listOfRoutes.item(s)));
-                    q.executeUpdate();
+                    q.getResultList();
                     //jdbcTemplate.update(query, new Object[]{s+1,((Element)routeEl).getAttribute("id"),  nodeToString(listOfRoutes.item(s))});
                     LOG.error("Route Registration Successed");
                 }
