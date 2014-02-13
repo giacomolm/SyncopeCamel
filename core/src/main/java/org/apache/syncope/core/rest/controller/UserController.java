@@ -485,7 +485,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
     }
     
     public PrintStream getDefinition() throws FileNotFoundException{
-        String result = "";
+        /*String result = "";
         if(provisioningManager instanceof CamelUserProvisioningManager){
             List l = ((CamelUserProvisioningManager)provisioningManager).getRoutes();
             Iterator<CamelRoute> it = l.iterator();
@@ -494,7 +494,7 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
                 result += it.next().getRouteContent();
             }                        
         }
-        return new PrintStream(result);
+        return new PrintStream(result);*/
             
     }
 }
