@@ -62,7 +62,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class CamelUserProvisioningManager implements UserProvisioningManager {
 
@@ -95,40 +97,40 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
     protected DefaultCamelContext getContext() {
         /*ApplicationContext context = ApplicationContextProvider.getApplicationContext();
          return context.getBean("camel-context", DefaultCamelContext.class);*/
-        if (camelContext == null) {
+        if (camelContext == null) { 
             camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());
 
             List<CamelRoute> crl = getRoutes();
-            /*InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
-             try {
+            InputStream file = getClass().getResourceAsStream("/userRoute.xml");
+            try {
                             
-             DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-             JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);                    
-             Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-             List rds = new ArrayList();
-                    
-             Document doc = dBuilder.parse(file);
-             doc.getDocumentElement().normalize();
+                DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);                    
+                Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+                List rds = new ArrayList();
 
-             NodeList listOfRoutes = doc.getElementsByTagName("route");
-             for(int s=0; s<listOfRoutes.getLength(); s++){
-             //getting the route node element
-             Node routeEl = listOfRoutes.item(s);
-             //crate an instance of CamelRoute Entity
-             CamelRoute route = new CamelRoute();                                 
-             route.setName(((Element)routeEl).getAttribute("id"));        
-             JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
-             //adding route definition to list                        
-             rds.add(obj.getValue()); 
-             }                         
+                Document doc = dBuilder.parse(file);
+                doc.getDocumentElement().normalize();
+
+                NodeList listOfRoutes = doc.getElementsByTagName("route");
+                for(int s=0; s<listOfRoutes.getLength(); s++){
+                //getting the route node element
+                Node routeEl = listOfRoutes.item(s);
+                //crate an instance of CamelRoute Entity
+                CamelRoute route = new CamelRoute();                                 
+                route.setName(((Element)routeEl).getAttribute("id"));        
+                JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
+                //adding route definition to list                        
+                rds.add(obj.getValue()); 
+            }                         
                    
              camelContext.addRouteDefinitions(rds);              
              camelContext.start();
-             } catch (Exception ex) {
+            } catch (Exception ex) {
              LOG.info("Error during loading camel context {}", ex);
-             }*/
+            }
 
-            try {
+            /*try {
 
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                 JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);
@@ -154,7 +156,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
                 camelContext.start();
             } catch (Exception ex) {
                 LOG.info("Error during loading camel context {}", ex);
-            }
+            }*/
         }
         return camelContext;
     }
