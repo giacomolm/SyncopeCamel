@@ -77,7 +77,7 @@ public class CamelRouteLoader {
             URL url = getClass().getResource("/camelRoute.xml");                                   
 
             File file = new File(url.getPath());
-            /*String query= "INSERT INTO CamelRoute(ID, NAME, ROUTECONTENT) VALUES (?, ?, ?)";
+            String query= "INSERT INTO CamelRoute(ID, NAME, ROUTECONTENT) VALUES (?, ?, ?)";
             try{
                 
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -106,38 +106,7 @@ public class CamelRouteLoader {
                 LOG.error("While trying to perform {}", query, e);
             } catch (Exception e) {
                 LOG.error("Route Registration failed {}",e.getMessage());
-            }*/
-            
-            try{
-                Query q = entityManager.createNativeQuery("INSERT INTO CamelRoute(ID, NAME, ROUTECONTENT) VALUES (?, ?, ?)");
-                DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                Document doc = dBuilder.parse(file);
-                doc.getDocumentElement().normalize();
-                
-
-                //try {                 
-                
-                NodeList listOfRoutes = doc.getElementsByTagName("route");
-                for(int s=0; s<listOfRoutes.getLength(); s++){
-                    //getting the route node element
-                    Node routeEl = listOfRoutes.item(s);
-                    //crate an instance of CamelRoute Entity
-                    CamelRoute route = new CamelRoute();                                 
-                    route.setName(((Element)routeEl).getAttribute("id"));        
-                    route.setRouteContent(nodeToString(listOfRoutes.item(s)));
-                    //This is the exception cause
-                    //routeDAO.save(route);
-                    q.setParameter("ID", s+1);
-                    q.setParameter("NAME", ((Element)routeEl).getAttribute("id"));
-                    q.setParameter("ROUTECONTENT", nodeToString(listOfRoutes.item(s)));
-                    q.getResultList();
-                    //jdbcTemplate.update(query, new Object[]{s+1,((Element)routeEl).getAttribute("id"),  nodeToString(listOfRoutes.item(s))});
-                    LOG.error("Route Registration Successed");
-                }
-            }
-            catch(Exception e){
-                
-            }
+            }                     
             
         }
     }
