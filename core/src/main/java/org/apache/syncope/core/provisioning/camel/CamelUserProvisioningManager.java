@@ -19,7 +19,6 @@
 package org.apache.syncope.core.provisioning.camel;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -31,14 +30,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import javax.sql.rowset.serial.SerialClob;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.PollingConsumer;
@@ -65,12 +61,8 @@ import org.apache.syncope.core.workflow.WorkflowResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
 public class CamelUserProvisioningManager implements UserProvisioningManager {
 
@@ -83,9 +75,9 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
     protected Map<String, PollingConsumer> consumerMap;
 
     protected List<String> knownUri;
-            
+
     @Autowired
-    protected RouteDAO routeDao;       
+    protected RouteDAO routeDao;
 
     public CamelUserProvisioningManager() throws Exception {
         knownUri = new ArrayList<String>();
@@ -100,78 +92,77 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         camelContext.stop();
     }
 
-    public DefaultCamelContext getContext() {
+    protected DefaultCamelContext getContext() {
         /*ApplicationContext context = ApplicationContextProvider.getApplicationContext();
-        return context.getBean("camel-context", DefaultCamelContext.class);*/        
-        if(camelContext == null){
-            camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());            
-            
+         return context.getBean("camel-context", DefaultCamelContext.class);*/
+        if (camelContext == null) {
+            camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());
+
             List<CamelRoute> crl = getRoutes();
             /*InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
-            try {
+             try {
                             
-                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                    JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);                    
-                    Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-                    List rds = new ArrayList();
+             DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+             JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);                    
+             Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+             List rds = new ArrayList();
                     
-                    Document doc = dBuilder.parse(file);
-                    doc.getDocumentElement().normalize();
+             Document doc = dBuilder.parse(file);
+             doc.getDocumentElement().normalize();
 
-                    NodeList listOfRoutes = doc.getElementsByTagName("route");
-                    for(int s=0; s<listOfRoutes.getLength(); s++){
-                        //getting the route node element
-                        Node routeEl = listOfRoutes.item(s);
-                        //crate an instance of CamelRoute Entity
-                        CamelRoute route = new CamelRoute();                                 
-                        route.setName(((Element)routeEl).getAttribute("id"));        
-                        JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
-                        //adding route definition to list                        
-                        rds.add(obj.getValue()); 
-                    }                         
+             NodeList listOfRoutes = doc.getElementsByTagName("route");
+             for(int s=0; s<listOfRoutes.getLength(); s++){
+             //getting the route node element
+             Node routeEl = listOfRoutes.item(s);
+             //crate an instance of CamelRoute Entity
+             CamelRoute route = new CamelRoute();                                 
+             route.setName(((Element)routeEl).getAttribute("id"));        
+             JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
+             //adding route definition to list                        
+             rds.add(obj.getValue()); 
+             }                         
                    
-                    camelContext.addRouteDefinitions(rds);              
-                    camelContext.start();
-            } catch (Exception ex) {
-                LOG.info("Error during loading camel context {}", ex);
-            }*/
-                        
+             camelContext.addRouteDefinitions(rds);              
+             camelContext.start();
+             } catch (Exception ex) {
+             LOG.info("Error during loading camel context {}", ex);
+             }*/
+
             try {
-                            
-                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                    JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);                    
-                    Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-                    List rds = new ArrayList();
-                    
-                    for(int s=0; s<crl.size(); s++){ 
-                        
-                        InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
-                        Document doc = dBuilder.parse(is);                   
-                        doc.getDocumentElement().normalize();                    
-                        Node routeEl;
+
+                DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);
+                Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+                List rds = new ArrayList();
+
+                for (int s = 0; s < crl.size(); s++) {
+
+                    InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
+                    Document doc = dBuilder.parse(is);
+                    doc.getDocumentElement().normalize();
+                    Node routeEl;
 
                         //ArrayList acl = new ArrayList();                         
-                        //NodeList listOfRoutes = doc.getElementsByTagName("route");
-                                                                                       
-                        routeEl = doc.getElementsByTagName("route").item(0);
-                        JAXBElement  obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);            
-                        //adding route definition to list                        
-                        rds.add(obj.getValue());                                
-                    }
-                    
-                    camelContext.addRouteDefinitions(rds);                    
-                    camelContext.start();
+                    //NodeList listOfRoutes = doc.getElementsByTagName("route");
+                    routeEl = doc.getElementsByTagName("route").item(0);
+                    JAXBElement obj = unmarshaller.unmarshal(routeEl, RouteDefinition.class);
+                    //adding route definition to list                        
+                    rds.add(obj.getValue());
+                }
+
+                camelContext.addRouteDefinitions(rds);
+                camelContext.start();
             } catch (Exception ex) {
                 LOG.info("Error during loading camel context {}", ex);
             }
         }
-        return camelContext;            
+        return camelContext;
     }
 
-    public List<CamelRoute> getRoutes(){
+    protected List<CamelRoute> getRoutes() {
         return routeDao.findAll();
     }
-    
+
     public void changeRoute(String routePath) {
         try {
             camelContext.removeRouteDefinitions(routes.getRoutes());
@@ -200,7 +191,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         while (it.hasNext()) {
             Map.Entry<String, Object> property = it.next();
             exc.setProperty(property.getKey(), property.getValue());
-            LOG.info("Added property {}", property.getKey());            
+            LOG.info("Added property {}", property.getKey());
         }
 
         DefaultMessage m = new DefaultMessage();
@@ -211,7 +202,6 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
     }
 
     protected PollingConsumer getConsumer(String uri) {
-
         if (!knownUri.contains(uri)) {
             knownUri.add(uri);
             Endpoint endpoint = getContext().getEndpoint(uri);
@@ -236,10 +226,10 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
     }
 
     @Override
-    public Map.Entry<Long, List<PropagationStatus>> create(final UserTO userTO, boolean disablePwdPolicyCheck, Boolean enabled,Set<String> excludedResources){
+    public Map.Entry<Long, List<PropagationStatus>> create(final UserTO userTO, boolean disablePwdPolicyCheck, Boolean enabled, Set<String> excludedResources) {
         String uri = "direct:createPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
-        
+
         Map<String, Object> props = new HashMap<String, Object>();
         props.put("disablePwdPolicyCheck", disablePwdPolicyCheck);
         props.put("enabled", enabled);
@@ -255,7 +245,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
 
         return o.getIn().getBody(Map.Entry.class);
     }
-    
+
     /**
      *
      * @param userMod
@@ -277,22 +267,22 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
 
         return o.getIn().getBody(Map.Entry.class);
     }
- 
+
     @Override
     public List<PropagationStatus> delete(final Long userId) {
 
         return delete(userId, Collections.<String>emptySet());
     }
-    
+
     @Override
     public List<PropagationStatus> delete(final Long userId, Set<String> excludedResources) {
         String uri = "direct:deletePort";
         PollingConsumer pollingConsumer = getConsumer(uri);
-        
+
         Map<String, Object> props = new HashMap<String, Object>();
         props.put("excludedResources", excludedResources);
 
-        sendMessage("direct:deleteUser", userId,props);
+        sendMessage("direct:deleteUser", userId, props);
 
         Exchange o = pollingConsumer.receive();
 
@@ -329,13 +319,13 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         props.put("token", statusMod.getToken());
         props.put("user", user);
         props.put("statusMod", statusMod);
-        
+
         if (statusMod.isOnSyncope()) {
-            sendMessage("direct:activateUser", user.getId(), props);            
+            sendMessage("direct:activateUser", user.getId(), props);
         } else {
             WorkflowResult<Long> updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
-            sendMessage("direct:statusUser", updated, props);            
-        }               
+            sendMessage("direct:statusUser", updated, props);
+        }
 
         Exchange o = pollingConsumer.receive();
 
@@ -350,18 +340,18 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
     public Map.Entry<Long, List<PropagationStatus>> reactivate(SyncopeUser user, StatusMod statusMod) {
         String uri = "direct:statusPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
-        
+
         Map props = new HashMap<String, Object>();
         props.put("user", user);
         props.put("statusMod", statusMod);
-        
+
         if (statusMod.isOnSyncope()) {
-            sendMessage("direct:reactivateUser", user.getId(),props);
+            sendMessage("direct:reactivateUser", user.getId(), props);
         } else {
             WorkflowResult<Long> updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
-            sendMessage("direct:statusUser", updated, props); 
+            sendMessage("direct:statusUser", updated, props);
         }
-        
+
         Exchange o = pollingConsumer.receive();
 
         if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
@@ -376,18 +366,18 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
 
         String uri = "direct:statusPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
-        
+
         Map props = new HashMap<String, Object>();
         props.put("user", user);
         props.put("statusMod", statusMod);
-        
+
         if (statusMod.isOnSyncope()) {
-            sendMessage("direct:suspendUser", user.getId(),props);
+            sendMessage("direct:suspendUser", user.getId(), props);
         } else {
             WorkflowResult<Long> updated = new WorkflowResult<Long>(user.getId(), null, statusMod.getType().name().toLowerCase());
-            sendMessage("direct:statusUser", updated, props); 
+            sendMessage("direct:statusUser", updated, props);
         }
-        
+
         Exchange o = pollingConsumer.receive();
 
         if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
@@ -400,7 +390,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
     @Override
     public Long link(UserMod subjectMod) {
         String uri = "direct:linkPort";
-        
+
         PollingConsumer pollingConsumer = getConsumer(uri);
 
         sendMessage("direct:linkUser", subjectMod);
@@ -412,32 +402,32 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         }
 
         o.getIn().setBody((o.getIn().getBody(UserMod.class).getId()));
-        return o.getIn().getBody(Long.class);        
+        return o.getIn().getBody(Long.class);
     }
 
     @Override
     public List<PropagationStatus> deprovision(Long user, Collection<String> resources) {
         String uri = "direct:deprovisionPort";
-        
+
         PollingConsumer pollingConsumer = getConsumer(uri);
-        
+
         Map props = new HashMap<String, Object>();
         props.put("resources", resources);
 
         sendMessage("direct:deprovisionUser", user, props);
-        
+
         Exchange o = pollingConsumer.receive();
 
         if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {
             throw (RuntimeException) o.getProperty(Exchange.EXCEPTION_CAUGHT);
         }
-        
-        return o.getIn().getBody(List.class);               
+
+        return o.getIn().getBody(List.class);
     }
 
     @Override
     public Map.Entry<Long, List<PropagationStatus>> updateInSync(UserMod userMod, Long id, SyncResult result, Boolean enabled, Set<String> excludedResources) {
-                
+
         String uri = "direct:updateSyncPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
 
@@ -445,14 +435,14 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
         props.put("id", id);
         props.put("result", result);
         props.put("enabled", enabled);
-        props.put("excludedResources",excludedResources);
-        
+        props.put("excludedResources", excludedResources);
+
         sendMessage("direct:updateSyncUser", userMod, props);
 
         Exchange o = pollingConsumer.receive();
         Exception e;
-        if (( e = (Exception) o.getProperty(Exchange.EXCEPTION_CAUGHT)) != null) {
-             
+        if ((e = (Exception) o.getProperty(Exchange.EXCEPTION_CAUGHT)) != null) {
+
             LOG.error("Update of user {} failed, trying to sync its status anyway (if configured)", id, e);
 
             result.setStatus(SyncResult.Status.FAILURE);
@@ -470,14 +460,14 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
 
     @Override
     public void innerSuspend(SyncopeUser user, boolean suspend) {
-        
+
         String uri = "direct:suspendWFPort";
         PollingConsumer pollingConsumer = getConsumer(uri);
-        
+
         Map<String, Object> props = new HashMap<String, Object>();
         props.put("suspend", suspend);
 
-        sendMessage("direct:suspendUserWF", user,props);
+        sendMessage("direct:suspendUserWF", user, props);
         Exchange o = pollingConsumer.receive();
 
         if (o.getProperty(Exchange.EXCEPTION_CAUGHT) != null) {

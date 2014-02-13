@@ -61,12 +61,8 @@ public class CamelRouteLoader {
         
         
         //manca la parte del findALL se le rotte sono gia presenti in memoria        
-        if(routeDAO.findAll().size()>0){
-            
-        }
-        else{
-            URL url = getClass().getResource("/camelRoute.xml");
-                                   
+        if(routeDAO.findAll().isEmpty()){
+            URL url = getClass().getResource("/camelRoute.xml");                                   
 
             File file = new File(url.getPath());
 
