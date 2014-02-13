@@ -28,8 +28,8 @@ public class CamelRoute {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name="anId")
-    private Long anId;
+    @Column(name="id")
+    private Long id;
 
     private String name;
 
@@ -37,7 +37,7 @@ public class CamelRoute {
     private String routeContent;
 
     public Long getId() {
-        return anId;
+        return id;
     }
 
     public void setName(String name) {

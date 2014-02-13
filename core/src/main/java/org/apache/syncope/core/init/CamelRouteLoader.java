@@ -22,6 +22,8 @@ package org.apache.syncope.core.init;
 import java.io.File;
 import java.io.StringWriter;
 import java.net.URL;
+import java.util.ArrayList;
+import javax.sql.DataSource;
 import javax.sql.rowset.serial.SerialClob;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -40,6 +42,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
@@ -52,8 +56,11 @@ public class CamelRouteLoader {
     
     private static final Logger LOG = LoggerFactory.getLogger(CamelRouteLoader.class);
     
-    @Autowired
-    private RouteDAO routeDAO;
+    /*@Autowired
+    private RouteDAO routeDAO;*/
+    
+     @Autowired
+     private DataSource dataSource;
  
  
     @Transactional
@@ -61,17 +68,21 @@ public class CamelRouteLoader {
         
         
         //manca la parte del findALL se le rotte sono gia presenti in memoria        
-        if(routeDAO.findAll().isEmpty()){
-            URL url = getClass().getResource("/userRoute.xml");                                   
+        //if(routeDAO.findAll().isEmpty()){
+            URL url = getClass().getResource("/camelRoute.xml");                                   
 
             File file = new File(url.getPath());
-
+            String query= "INSERT INTO CamelRoute(ID, NAME, CONTENT) VALUES (?, ?, ?)";
             try{
                 
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                 Document doc = dBuilder.parse(file);
                 doc.getDocumentElement().normalize();
 
+                JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+
+                //try {                 
+                
                 NodeList listOfRoutes = doc.getElementsByTagName("route");
                 for(int s=0; s<listOfRoutes.getLength(); s++){
                     //getting the route node element
@@ -82,12 +93,16 @@ public class CamelRouteLoader {
                     route.setRouteContent(nodeToString(listOfRoutes.item(s)));
                     //This is the exception cause
                     //routeDAO.save(route);
+                    
+                    jdbcTemplate.update(query, new Object[]{s+1,((Element)routeEl).getAttribute("id"),  nodeToString(listOfRoutes.item(s))});
                     LOG.error("Route Registration Successed");
                 }
+            } catch (DataAccessException e) {
+                LOG.error("While trying to perform {}", query, e);
             } catch (Exception e) {
                 LOG.error("Route Registration failed {}",e.getMessage());
             }
-        }
+        //}
     }
     
   private String nodeToString(Node node) {
