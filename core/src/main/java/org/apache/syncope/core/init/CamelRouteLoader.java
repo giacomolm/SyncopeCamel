@@ -73,7 +73,7 @@ public class CamelRouteLoader {
         
         
         //manca la parte del findALL se le rotte sono gia presenti in memoria        
-        //if(routeDAO.findAll().isEmpty()){
+        if(routeDAO.findAll().isEmpty()){
             URL url = getClass().getResource("/camelRoute.xml");                                   
 
             File file = new File(url.getPath());
@@ -139,7 +139,7 @@ public class CamelRouteLoader {
                 
             }
             
-        //}
+        }
     }
     
   private String nodeToString(Node node) {
