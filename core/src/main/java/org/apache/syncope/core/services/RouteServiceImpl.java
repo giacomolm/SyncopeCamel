@@ -29,12 +29,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RouteServiceImpl extends AbstractServiceImpl implements RouteService{
+public class RouteServiceImpl extends AbstractServiceImpl /*implements RouteService*/{
 
     @Autowired
     protected UserController userController;
     
-    @Override
+    /*@Override
     public Response getRoutes() {
         
        StreamingOutput sout = new StreamingOutput() {
@@ -46,6 +46,6 @@ public class RouteServiceImpl extends AbstractServiceImpl implements RouteServic
         };
         
         return Response.ok(sout).build();
-    }
+    }*/
     
 }
