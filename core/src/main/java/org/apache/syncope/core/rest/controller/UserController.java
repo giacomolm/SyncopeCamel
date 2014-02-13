@@ -495,6 +495,6 @@ public class UserController extends AbstractResourceAssociator<UserTO> {
             }                        
         }
         return new PrintStream(result);*/
-            
+        return null;
     }
 }
