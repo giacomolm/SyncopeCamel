@@ -97,7 +97,7 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
         if(camelContext == null){
             camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());            
             
-            InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
+            /*InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
             try {
                             
              DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -123,10 +123,8 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
              camelContext.start();
             } catch (Exception ex) {
              LOG.info("Error during loading camel context {}", ex);
-            }
-            /*List<CamelRoute> crl = routeDao.findAll();
-            
-            InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
+            }*/
+            List<CamelRoute> crl = routeDao.findAll();                       
                         
             try {
                             
@@ -155,7 +153,7 @@ public class CamelRoleProvisioningManager implements RoleProvisioningManager{
                     camelContext.start();
             } catch (Exception ex) {
                 LOG.info("Error during loading camel context {}", ex);
-            }*/
+            }
         }
         return camelContext;  
     }

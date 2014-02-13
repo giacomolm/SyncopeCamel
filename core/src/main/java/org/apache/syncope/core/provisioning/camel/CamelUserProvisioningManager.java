@@ -101,7 +101,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
             camelContext = new SpringCamelContext(ApplicationContextProvider.getApplicationContext());
 
             List<CamelRoute> crl = getRoutes();
-            InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
+            /*InputStream file = getClass().getResourceAsStream("/camelRoute.xml");
             try {
                             
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -128,9 +128,9 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
              camelContext.start();
             } catch (Exception ex) {
              LOG.info("Error during loading camel context {}", ex);
-            }
+            }*/
 
-            /*try {
+            try {
 
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                 JAXBContext jaxbContext = JAXBContext.newInstance(Constants.JAXB_CONTEXT_PACKAGES);
@@ -156,7 +156,7 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
                 camelContext.start();
             } catch (Exception ex) {
                 LOG.info("Error during loading camel context {}", ex);
-            }*/
+            }
         }
         return camelContext;
     }
