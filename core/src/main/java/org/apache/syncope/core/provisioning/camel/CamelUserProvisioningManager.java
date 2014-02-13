@@ -20,6 +20,7 @@ package org.apache.syncope.core.provisioning.camel;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URLDecoder;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -139,7 +140,8 @@ public class CamelUserProvisioningManager implements UserProvisioningManager {
 
                 for (int s = 0; s < crl.size(); s++) {
 
-                    InputStream is = new ByteArrayInputStream(crl.get(s).getRouteContent().getBytes());
+                   
+                    InputStream is = new ByteArrayInputStream( URLDecoder.decode(crl.get(s).getRouteContent(), "UTF-8").getBytes());
                     Document doc = dBuilder.parse(is);
                     doc.getDocumentElement().normalize();
                     Node routeEl;
